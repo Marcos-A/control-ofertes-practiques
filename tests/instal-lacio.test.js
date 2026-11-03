@@ -113,3 +113,121 @@ test('reinstal·lar substitueix els triggers i les regles de format en lloc de d
   ]);
   assert.equal(esc.fullMestre.getConditionalFormatRules().length, 2);
 });
+
+
+/********************************************************
+ * AUDITORIA
+ ********************************************************/
+
+const AVIS_AUDITORIA_NETA = 'Auditoria completada: no s\'han detectat inconsistències.';
+const DATA_CONTACTE = new Date(2026, 9, 1);
+
+// Sistema coherent: les ofertes 1 a 6 ocupen les files 2 a 7 del mestre.
+function escenariAuditable() {
+  const o1 = ofertaDeMostra(1, { estat: 'Contactada', gestionada: 'GA1A', dataContacte: DATA_CONTACTE });
+  // Assignada amb Data contacte: és el registre d'auditoria, no una incoherència.
+  const o2 = ofertaDeMostra(2, { estat: 'Assignada', gestionada: 'GA1B', dataContacte: DATA_CONTACTE });
+  const o5 = ofertaDeMostra(5, { estat: 'Assignada', gestionada: 'GA1A' });
+  const o6 = ofertaDeMostra(6, { estat: 'Contactada', gestionada: 'GA1A', dataContacte: DATA_CONTACTE });
+  const esc = new Escenari({
+    ofertes: [o1, o2, ofertaDeMostra(3), ofertaDeMostra(4, { estat: 'Esperant informació' }), o5, o6],
+    grups: {
+      GA1A: [
+        { tipus: 'Contacte', origen: 1 },
+        { tipus: 'Acord', origen: 5 },
+        { tipus: 'Contacte', origen: 6 },
+        { tipus: 'Acord', origen: 'propi' }
+      ],
+      GA1B: [{ tipus: 'Acord', origen: 2 }]
+    }
+  });
+  esc.reiniciarRegistres();
+  return esc;
+}
+
+// Cada incoherència, introduïda directament a les dades, i el que n'ha de dir l'auditoria.
+const INCOHERENCIES = [
+  // La còpia posterior no ha de substituir l'original: si ho fes, també
+  // s'informaria d'una oferta Assignada sense cap fila de grup.
+  ['ID duplicat al mestre',
+    esc => esc.escriureOferta(20, ofertaDeMostra(3, { estat: 'Assignada', gestionada: 'GA2B' })),
+    'ID duplicat 3: files 4 i 20 del mestre.'],
+  ['oferta utilitzada en diverses files',
+    esc => esc.escriureFilaGrup('GA2A', 2, { tipus: 'Acord', origen: 2 }),
+    'Oferta 2: utilitzada 2 vegades (GA1B!fila 2, GA2A!fila 2).'],
+  ['referència a una oferta inexistent',
+    esc => esc.escriureFilaGrup('GA1C', 2, { tipus: 'Acord', origen: 99 }),
+    'Oferta 99: apareix en un grup però no existeix al mestre.'],
+  ['Tipus del grup incoherent amb l\'estat del mestre',
+    esc => esc.escriureFilaGrup('GA1A', 2, { tipus: 'Acord' }),
+    'Oferta 1: al grup és Acord, però al mestre consta Contactada.'],
+  // Amb Tipus Contacte també diu «Contactada però sense Data contacte», que és
+  // enganyós perquè l'oferta és Pendent (TODO.md, secció 3.4).
+  ['referència a una oferta Pendent',
+    esc => esc.escriureFilaGrup('GA2B', 9, { tipus: 'Acord', origen: 3 }),
+    ['Oferta 3: al grup és Acord, però al mestre consta Pendent.',
+      'Oferta 3: Gestionada per = [buit], però l\'ús és a GA2B.']],
+  ['Gestionada per diferent del grup que la fa servir',
+    esc => esc.escriureOferta(6, { gestionada: 'GA2B' }),
+    'Oferta 5: Gestionada per = GA2B, però l\'ús és a GA1A.'],
+  ['Contactada sense Data contacte',
+    esc => esc.escriureOferta(7, { dataContacte: '' }),
+    'Oferta 6: Contactada però sense Data contacte.'],
+  ['oferta activa sense cap fila de grup',
+    esc => esc.escriureOferta(5, { estat: 'Assignada', gestionada: 'AF1M' }),
+    'Oferta 4: Assignada al mestre però sense cap fila de grup.']
+];
+
+test('auditarSistema() no informa de res en un sistema coherent i no escriu res', () => {
+  const esc = escenariAuditable();
+
+  const problemes = esc.executar('auditarSistema');
+
+  assert.deepEqual([...problemes], []);
+  assert.deepEqual(esc.avisos(), [AVIS_AUDITORIA_NETA]);
+  assert.deepEqual(esc.mon.registre, [AVIS_AUDITORIA_NETA]);
+  assert.equal(esc.comptador.escriptures(), 0, JSON.stringify(esc.comptador.perMetode));
+});
+
+test('auditarSistema() detecta cada tipus d\'incoherència', async t => {
+  for (const [nom, alterar, esperats] of INCOHERENCIES) {
+    await t.test(nom, () => {
+      const esc = escenariAuditable();
+      alterar(esc);
+
+      const problemes = esc.executar('auditarSistema');
+
+      const llista = [esperats].flat();
+      assert.deepEqual([...problemes], llista);
+      assert.deepEqual(esc.avisos(), [`Auditoria: ${llista.length} incidència/es.\n\n${llista.join('\n')}`]);
+      assert.equal(esc.comptador.escriptures(), 0, 'l\'auditoria no corregeix res');
+    });
+  }
+});
+
+test('auditarSistema() informa de totes les incoherències alhora i n\'avisa de 20 com a màxim', async t => {
+  await t.test('totes alhora', () => {
+    const esc = escenariAuditable();
+    INCOHERENCIES.forEach(([, alterar]) => alterar(esc));
+
+    const problemes = esc.executar('auditarSistema');
+
+    assert.deepEqual([...problemes].sort(), INCOHERENCIES.flatMap(([, , esperats]) => esperats).sort());
+  });
+
+  await t.test('més de 20', () => {
+    const esc = escenariAuditable();
+    for (let i = 0; i < 25; i++) {
+      esc.escriureFilaGrup('AF2T', 2 + i, { tipus: 'Acord', origen: 900 + i });
+    }
+
+    const problemes = esc.executar('auditarSistema');
+
+    assert.equal(problemes.length, 25);
+    const [avis] = esc.avisos();
+    const [capcalera, , ...linies] = avis.split('\n');
+    assert.equal(capcalera, 'Auditoria: 25 incidència/es.');
+    assert.equal(linies.length, 20);
+    assert.equal(linies[19], 'Oferta 919: apareix en un grup però no existeix al mestre.');
+  });
+});

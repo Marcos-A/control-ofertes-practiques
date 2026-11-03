@@ -2,7 +2,7 @@
 
 Pla de treball pendent per a [`script.gs`](script.gs). Està pensat perquè una persona o un agent el pugui continuar sense context previ.
 
-**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; també hi ha les proves de reconciliació, d'edició als fulls de grup (incloses les edicions múltiples i els canvis estructurals) d'edició al mestre i de publicació. Falta la prova de caracterització d'`auditarSistema()` de la secció 2.4.
+**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; també hi ha les proves de reconciliació, d'edició als fulls de grup (incloses les edicions múltiples i els canvis estructurals) d'edició al mestre, de publicació i d'auditoria: la secció 2.4 està completa. Falten els pressupostos de rendiment de la secció 2.5 i després les optimitzacions de la fase 2.
 
 **Ordre recomanat:**
 1. Primer, el banc de proves (secció 2) i les proves de caracterització de la v9 actual.
@@ -168,7 +168,7 @@ Cada cas parteix d'una fixture mínima, simula l'esdeveniment i comprova l'estat
 - [x] `instal_larSistema()` amb l'ID de mostra falla amb un missatge clar.
 - [x] Falten fulls o capçaleres: error amb el nom del full i de la capçalera.
 - [x] Instal·lació correcta: tres triggers (i s'eliminen els anteriors), full auxiliar ocult, validacions i formats condicionals aplicats.
-- [ ] `auditarSistema()` detecta cada tipus d'incoherència i no informa de res en un sistema coherent.
+- [x] `auditarSistema()` detecta cada tipus d'incoherència i no informa de res en un sistema coherent.
 
 ### 2.5 Proves de rendiment
 
@@ -264,6 +264,7 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 ### 3.4 Neteja i coherència (sense impacte funcional)
 
 - [ ] `sincronitzarDadesOfertaActiva_`: variable no usada `lastRow`. Es pot llegir només la columna Origen fent servir `CFG.FIRST_DATA_ROW` en lloc del literal `2`.
+- [ ] `auditarSistema`: quan una fila de grup amb Tipus Contacte fa referència a una oferta que no és Contactada (per exemple, Pendent), també informa de «Contactada però sense Data contacte», que és enganyós. La comprovació de Data contacte s'ha de fer amb l'estat real del mestre (`offer.estat`), no amb l'esperat. Cal afegir el cas a `instal-lacio.test.js` en corregir-ho.
 - [ ] `auditarSistema`: construeix el seu propi mapa del mestre. Pot reutilitzar `construirOfertaDesDeFila_` mantenint la detecció de duplicats.
 - [ ] Substituir els literals `2` per `CFG.FIRST_DATA_ROW` a tot el fitxer.
 - [ ] Actualitzar el comentari de la secció «MEMÒRIA CAU D'EXECUCIÓ DEL MESTRE» perquè descrigui totes les memòries cau i les regles d'invalidació (vegeu 1.2).
@@ -283,8 +284,8 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 
 ## 4. Criteris d'acceptació
 
-- [ ] `node --test "tests/**/*.test.js"` passa en verd dins del contenidor.
-- [ ] Totes les proves de la secció 2.4 existeixen i passen contra la v9 **abans** de començar la fase 2.
+- [x] `node --test "tests/**/*.test.js"` passa en verd dins del contenidor.
+- [x] Totes les proves de la secció 2.4 existeixen i passen contra la v9 **abans** de començar la fase 2.
 - [ ] Cada optimització de la secció 3 va en un commit propi i no trenca cap prova.
 - [ ] Els pressupostos de crides de la secció 2.5 es fixen i s'ajusten a la baixa a mesura que s'optimitza.
 - [ ] La capçalera de `script.gs` documenta la nova versió (v10) i el README explica com executar les proves.
