@@ -115,7 +115,7 @@ No introdueixis manualment altres valors.
 
 ## 10\. Dades de l'oferta i dades de l'acord
 
-Quan reserves una oferta, el sistema pot emplenar automàticament:
+Quan reserves una oferta, el sistema emplena automàticament:
 
 - Persona contacte  
 - Correu  
@@ -124,13 +124,18 @@ Quan reserves una oferta, el sistema pot emplenar automàticament:
 - Localitat  
 - Nom empresa
 
-No assumeix, però, que la persona de contacte sigui necessàriament el responsable o el tutor de l'empresa. Aquests camps s'han de completar amb les dades correctes.
+Aquestes sis dades provenen del registre de la coordinadora i el sistema les manté iguals que allà: si les modifiques a la teva fila, es tornaran a substituir per les del registre. Si alguna és incorrecta, comunica-ho a la coordinadora perquè la corregeixi; la correcció apareixerà automàticament a la teva fila.
+
+La persona de contacte no és necessàriament el responsable o el tutor de l'empresa. Les altres columnes de la fila (tutor de l'empresa, alumne, dates, hores...) les has de completar tu.
+
+En un **Acord propi**, en canvi, totes les dades les introdueixes tu i el sistema no les modifica mai.
 
 ## 11\. Regles importants
 
 - Treballa sempre a la pestanya del teu grup.  
 - No reutilitzis una oferta que no aparegui com a disponible.  
 - No modifiquis les dades d'altres grups.  
+- No modifiquis les dades de l'empresa que emplena el sistema: demana a la coordinadora que les corregeixi.  
 - No intentis escriure manualment valors que el sistema rebutja.  
 - Si has reservat una oferta i finalment no la gestionaràs, allibera-la perquè torni a estar disponible.  
 - Si una oferta s'ha de descartar, avisa la coordinadora.
