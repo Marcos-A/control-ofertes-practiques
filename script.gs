@@ -1145,6 +1145,13 @@ function actualitzarPublicacioIAuxiliarSenseLock_() {
 
   pending.sort((a, b) => a.id - b.id);
 
+  // Abans d'escriure res: si l'error saltés a mitja publicació, l'auxiliar
+  // quedaria buit i els desplegables d'Origen sense opcions.
+  // La columna A de l'auxiliar conté propi + les ofertes Pendent.
+  if (pending.length + 1 > CFG.MAX_ORIGENS_AUXILIAR) {
+    throw new Error('Hi ha massa ofertes Pendent per al rang auxiliar configurat.');
+  }
+
   // Publicació: només ofertes Pendent i sense dades de contacte.
   const requiredPublicRows = Math.max(pending.length + 1, 2);
   if (publicSheet.getMaxRows() < requiredPublicRows) {
@@ -1180,10 +1187,6 @@ function actualitzarPublicacioIAuxiliarSenseLock_() {
 
   const acordValues = [[CFG.ORIGEN.PROPI], ...pending.map(o => [o.id])];
   const contacteValues = pending.map(o => [o.id]);
-
-  if (acordValues.length > CFG.MAX_ORIGENS_AUXILIAR) {
-    throw new Error('Hi ha massa ofertes Pendent per al rang auxiliar configurat.');
-  }
 
   if (acordValues.length > 0) {
     aux.getRange(2, 1, acordValues.length, 1).setValues(acordValues);

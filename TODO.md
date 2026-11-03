@@ -254,7 +254,6 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
     - llegir el contingut publicat actual i no escriure res si és idèntic;
     - esborrar només les files sobrants;
     - fer que retorni la llista d'IDs Pendent, perquè les validacions no hagin de tornar a llegir el mestre (`obtenirPendentsIds_`).
-    - comprovar el límit de `MAX_ORIGENS_AUXILIAR` abans d'escriure res: ara l'error salta quan `Ofertes` ja s'ha reescrit i l'auxiliar s'ha buidat, i els desplegables d'Origen queden sense opcions (`publicacio.test.js` ho documenta).
 - [ ] **`gestionarEdicioMestre`** llegeix la fila sencera en dues funcions diferents (`assignarIdAutomaticSiCal_` i `obtenirOfertaPerFilaMestre_`).
   - **Solució:** llegir-la una vegada i passar els valors.
 

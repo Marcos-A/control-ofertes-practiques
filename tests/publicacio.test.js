@@ -137,15 +137,22 @@ test('auxiliar: columna A = propi + IDs Pendent; columna B = IDs Pendent', () =>
   assert.equal(esc.fullAuxiliar.isSheetHidden(), true);
 });
 
-test('auxiliar: més ofertes Pendent de les que hi caben és un error', () => {
+test('auxiliar: més ofertes Pendent de les que hi caben és un error i no toca res', () => {
   // Les ofertes es creen com a Esperant informació perquè la instal·lació
   // funcioni, i després passen a Pendent. Amb propi, la columna A
   // necessitaria 2.001 files de les 2.000 disponibles.
   const esc = new Escenari({
-    ofertes: Array.from({ length: MAX_ORIGENS_AUXILIAR }, (_, i) =>
-      ofertaDeMostra(i + 1, { estat: 'Esperant informació' }))
+    ofertes: [
+      ofertaDeMostra(1),
+      ...Array.from({ length: MAX_ORIGENS_AUXILIAR - 1 }, (_, i) =>
+        ofertaDeMostra(i + 2, { estat: 'Esperant informació' }))
+    ]
   });
-  for (let i = 0; i < MAX_ORIGENS_AUXILIAR; i++) {
+  const publicades = esc.ofertesPublicades();
+  const auxiliar = [columnaAuxiliar(esc, 1), columnaAuxiliar(esc, 2)];
+  assert.deepEqual(auxiliar, [[[2, 'propi'], [3, 1]], [[2, 1]]]);
+
+  for (let i = 1; i < MAX_ORIGENS_AUXILIAR; i++) {
     esc.escriureOferta(i + 2, { estat: 'Pendent' });
   }
 
@@ -153,10 +160,11 @@ test('auxiliar: més ofertes Pendent de les que hi caben és un error', () => {
     () => esc.executar('actualitzarPublicacio'),
     /Hi ha massa ofertes Pendent per al rang auxiliar configurat/
   );
-  // Comportament actual: Ofertes ja s'ha reescrit i l'auxiliar ha quedat buit,
-  // de manera que els desplegables d'Origen no ofereixen cap opció.
-  assert.equal(esc.ofertesPublicades().length, MAX_ORIGENS_AUXILIAR);
-  assert.deepEqual(columnaAuxiliar(esc, 1), []);
+  // Regressió: abans l'error saltava quan Ofertes ja s'havia reescrit i
+  // l'auxiliar s'havia buidat, i els desplegables d'Origen quedaven sense
+  // opcions. Ara es conserva la publicació anterior.
+  assert.deepEqual(esc.ofertesPublicades(), publicades);
+  assert.deepEqual([columnaAuxiliar(esc, 1), columnaAuxiliar(esc, 2)], auxiliar);
 });
 
 test('validacions d\'Origen', async t => {
