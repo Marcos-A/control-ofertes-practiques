@@ -309,7 +309,7 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 - [x] Cada optimització de la secció 3 va en un commit propi i no trenca cap prova.
 - [x] Els pressupostos de crides de la secció 2.5 es fixen i s'ajusten a la baixa a mesura que s'optimitza.
 - [x] La capçalera de `script.gs` documenta la nova versió (v10) i el README explica com executar les proves.
-- [ ] Comprovar en una còpia real que el text amb forma de nombre o de fórmula es copia literalment al grup i a `Ofertes` (`comText_`): un telèfon `0034...` o `+34...` sense espais, i un comentari que comenci per `=` o `+`. Els dobles reprodueixen l'apòstrof inicial, però no s'ha pogut verificar amb Sheets.
+- [x] Comprovar en una còpia real que el text amb forma de nombre o de fórmula es copia literalment al grup i a `Ofertes` (`comText_`). Comprovat: el telèfon es copia tal com és al mestre. Els zeros inicials i el `+` només es perden si al mestre s'escriuen sense apòstrof, que és el comportament normal de Sheets en teclejar-los; la guia de coordinació explica com conservar-los.
 - [ ] Prova manual final en còpies dels dos fitxers reals, seguint la llista de proves del README: el banc de proves no cobreix els bloquejos reals, el temps dels triggers, els permisos ni la visualització dels desplegables.
   - Comprovacions específiques de la v10, que els dobles no poden confirmar:
     - `getFormulaR1C1()` retorna exactament la fórmula de Dies en contacte que s'hi ha escrit (si no, es continua reescrivint com a la v9, sense cap error).

@@ -23,6 +23,8 @@ Afegir una fila nova a *Ofertes mestre* i completar les dades disponibles.
 - **Empresa**, **Persona contacte**, **Correu electrònic**, **Telèfon** i **Adreça**: dades que els tutors no veuran mentre l'oferta sigui simplement publicada.  
 - **Cicle**, **Tasques**, **Torn pràctiques**, **Localitat**, **Data incorporació**, **Modalitat** i **Comentaris**: informació que sí es publica als tutors.
 
+Un telèfon escrit només amb xifres es converteix en un número i perd els zeros inicials i el signe `+` (`0034...`, `+34...`). Per conservar-los, escriu-lo amb un apòstrof al davant (`'0034930000001`), amb espais (`+34 930 000 001`) o dona format de text pla a la columna *Telèfon*. El sistema copia als tutors el telèfon exactament com queda al mestre.
+
 Les columnes *Gestionada per*, *Data contacte* i *Dies en contacte* són controlades pel sistema quan un tutor comença a gestionar una oferta.
 
 ## 3\. Estats de les ofertes
