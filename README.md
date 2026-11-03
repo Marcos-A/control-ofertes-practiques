@@ -1,0 +1,119 @@
+# Control d'ofertes i acords de pràctiques
+
+Script de Google Apps Script per gestionar les ofertes de pràctiques d'un centre educatiu entre la coordinació i els tutors de grup, amb dos fulls de càlcul de Google Sheets.
+
+La coordinació registra les ofertes en un fitxer privat. Els tutors només veuen les ofertes disponibles, sense dades de l'empresa. Quan un tutor reserva una oferta des del full del seu grup, el sistema la bloqueja per als altres grups i li mostra les dades de contacte.
+
+## Com funciona
+
+El sistema fa servir dos fitxers:
+
+| Fitxer | Qui hi accedeix | Fulls |
+|---|---|---|
+| **Ofertes de pràctiques - Coordinació** (mestre) | Només la coordinació | `Ofertes mestre` |
+| **Gestió de pràctiques - Tutors** (compartit) | Coordinació i tutors | `Ofertes` i un full per grup |
+
+Fulls de grup configurats per defecte: `GA1A`, `GA1B`, `GA1C`, `GA2A`, `GA2B`, `GAJ1`, `GAJ2`, `AF1M`, `AF1T`, `AF2M`, `AF2T`.
+
+L'script està vinculat al fitxer compartit. Els triggers s'instal·len amb el compte de la coordinació, de manera que els tutors poden reservar ofertes sense tenir accés al fitxer mestre.
+
+### Cicle de vida d'una oferta
+
+```
+Esperant informació   (falten dades)
+        ↓
+Pendent               → es publica als tutors
+        ↓
+Contactada            → un tutor l'ha reservada
+        ↓
+Assignada             → hi ha acord
+
+Si el contacte no prospera:   Contactada → Pendent
+Si s'ha de rebutjar:          la coordinació la passa a Descartada
+```
+
+### Què fan els tutors
+
+Al full del seu grup, cada registre té un **Tipus** i un **Origen**:
+
+| Situació | Tipus | Origen | Efecte |
+|---|---|---|---|
+| Vull contactar amb una oferta | Contacte | ID de l'oferta | L'oferta passa a *Contactada* i s'emplenen les dades de l'empresa |
+| El contacte prospera | Contacte → Acord | (el mateix ID) | L'oferta passa a *Assignada* |
+| Acord directe d'una oferta | Acord | ID de l'oferta | L'oferta passa directament a *Assignada* |
+| Acord aconseguit pel meu compte | Acord | `propi` | No consumeix cap oferta; les dades s'introdueixen a mà |
+| El contacte no prospera | (esborrar el registre) | | L'oferta torna a *Pendent* |
+
+En reservar una oferta, el sistema emplena automàticament **Persona contacte**, **Correu**, **Telèfon**, **Adreça**, **Localitat** i **Nom empresa**.
+
+### Funcionalitats principals
+
+- Publicació automàtica al full `Ofertes` només de les ofertes *Pendent*, sense dades d'empresa ni de contacte.
+- Reserva exclusiva: dos grups no poden tenir la mateixa oferta alhora (amb bloquejos de `LockService`).
+- Assignació automàtica d'`ID oferta` a les files noves del mestre.
+- Columna **Dies en contacte** amb format condicional: groc a partir de 7 dies i vermell a partir de 14 (configurable).
+- Reconciliació automàtica després d'enganxats, esborrats múltiples o eliminació de files, i reconciliació diferida si el sistema està ocupat.
+- Menú **Pràctiques** al fitxer compartit per actualitzar la publicació, auditar, reconciliar i reinstal·lar el sistema.
+
+## Instal·lació
+
+1. Crea (o duplica) els dos fitxers amb els fulls indicats a dalt.
+2. Obre el **fitxer compartit** i ves a **Extensions → Apps Script**.
+3. Substitueix el contingut de `Code.gs` pel contingut de [`script.gs`](script.gs).
+4. Copia l'ID del **fitxer mestre** de la seva URL (el text entre `/d/` i `/edit`) i enganxa'l a l'inici de l'script:
+   ```js
+   MASTER_SPREADSHEET_ID: 'ENGANXA_AQUI_ID_FITXER_MESTRE',
+   ```
+5. Desa l'script.
+6. Executa manualment `instal_larSistema()` una vegada **amb el compte de la coordinació** i accepta els permisos.
+7. Recarrega el fitxer compartit. Hi apareixerà el menú **Pràctiques**.
+
+No cal crear triggers a mà: `instal_larSistema()` elimina els antics i en crea tres de nous (edició del compartit, canvi estructural del compartit i edició del mestre).
+
+> **Atenció:** no publiquis l'ID real del fitxer mestre en aquest repositori. Mantén el valor de mostra a `script.gs` i posa l'ID real només a la còpia de l'editor d'Apps Script.
+
+### Configuració
+
+A l'objecte `CFG`, a l'inici de l'script, es poden ajustar:
+
+| Clau | Per defecte | Descripció |
+|---|---|---|
+| `GRUPS` | 11 grups | Noms dels fulls de grup |
+| `MAX_ACORDS_PER_GRUP` | `100` | Files gestionades per full de grup |
+| `CONTACTE_AVIS_DIES` | `7` | Dies per marcar un contacte en groc |
+| `CONTACTE_CRITIC_DIES` | `14` | Dies per marcar un contacte en vermell |
+
+Si canvies l'estructura de columnes, els noms dels grups o els estats, revisa l'script abans de fer-lo servir.
+
+## Proves recomanades
+
+Abans de passar a producció, instal·la el sistema en còpies dels dos fitxers i prova com a mínim:
+
+- Contacte + ID
+- Contacte → Acord
+- Eliminar un contacte
+- Acord + ID directe
+- Acord + propi
+- Canviar una oferta per una altra
+- Esborrar completament una fila
+- Eliminar físicament una fila
+- Intentar assignar la mateixa oferta des de dos grups alhora
+
+## Documentació
+
+- [Guia d'instal·lació](Documentació-Instal·lació_script.md)
+- [Guia d'ús per a la coordinació](Documentació-Coordinació.md)
+- [Guia d'ús per als tutors](Documentació-Tutories.md)
+
+## Nou curs acadèmic
+
+El sistema està pensat per fer servir un joc de fitxers per curs. Abans de començar un curs nou:
+
+1. Duplica els dos fitxers i conserva els originals com a historial.
+2. Revisa els noms dels grups a `CFG.GRUPS`.
+3. Actualitza `MASTER_SPREADSHEET_ID` amb l'ID del nou fitxer mestre i torna a executar `instal_larSistema()`.
+4. Fes una prova amb una oferta fictícia.
+
+## Nota de desenvolupament
+
+Aquest projecte s'ha desenvolupat sota direcció i revisió humanes, amb el suport d'eines d'intel·ligència artificial en parts del codi, la depuració i la documentació. Les decisions sobre el funcionament del sistema i la responsabilitat sobre el resultat corresponen a la persona responsable del projecte.

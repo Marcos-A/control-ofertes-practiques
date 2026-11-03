@@ -1,0 +1,36 @@
+# Còpies de seguretat i fitxers temporals
+*.bak
+*.bk
+*.orig
+*.tmp
+*~
+
+# Fitxers temporals de Microsoft Office (documents oberts)
+~$*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Claude Code (configuració local)
+.claude/
+
+# clasp (Apps Script CLI): credencials i configuració local
+.clasprc.json
+.clasp.json
+
+# Dependències i fitxers d'entorn
+node_modules/
+.env
+.env.*
