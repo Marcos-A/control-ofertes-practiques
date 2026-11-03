@@ -2,7 +2,7 @@
 
 Pla de treball pendent per a [`script.gs`](script.gs). Està pensat perquè una persona o un agent el pugui continuar sense context previ.
 
-**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; també hi ha les proves de reconciliació, d'edició als fulls de grup (incloses les edicions múltiples i els canvis estructurals) i d'edició al mestre. Falten les proves de caracterització de la secció 2.4 de publicació i auditoria.
+**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; també hi ha les proves de reconciliació, d'edició als fulls de grup (incloses les edicions múltiples i els canvis estructurals) d'edició al mestre i de publicació. Falta la prova de caracterització d'`auditarSistema()` de la secció 2.4.
 
 **Ordre recomanat:**
 1. Primer, el banc de proves (secció 2) i les proves de caracterització de la v9 actual.
@@ -158,10 +158,10 @@ Cada cas parteix d'una fixture mínima, simula l'esdeveniment i comprova l'estat
 
 **Publicació** (`publicacio.test.js`)
 
-- [ ] `Ofertes` conté només les Pendent, ordenades per ID i sense dades de contacte.
-- [ ] Les files sobrants de publicacions anteriors s'esborren.
-- [ ] Auxiliar: columna A = `propi` + IDs Pendent; columna B = IDs Pendent.
-- [ ] Validacions d'Origen: regla comuna per a files sense ID, regla individual amb l'ID actual per a files amb ID, i cap regla si se supera `MAX_INDIVIDUAL_DROPDOWN_ITEMS`.
+- [x] `Ofertes` conté només les Pendent, ordenades per ID i sense dades de contacte.
+- [x] Les files sobrants de publicacions anteriors s'esborren.
+- [x] Auxiliar: columna A = `propi` + IDs Pendent; columna B = IDs Pendent.
+- [x] Validacions d'Origen: regla comuna per a files sense ID, regla individual amb l'ID actual per a files amb ID, i cap regla si se supera `MAX_INDIVIDUAL_DROPDOWN_ITEMS`.
 
 **Instal·lació i auditoria** (`instal-lacio.test.js`)
 
@@ -254,6 +254,7 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
     - llegir el contingut publicat actual i no escriure res si és idèntic;
     - esborrar només les files sobrants;
     - fer que retorni la llista d'IDs Pendent, perquè les validacions no hagin de tornar a llegir el mestre (`obtenirPendentsIds_`).
+    - comprovar el límit de `MAX_ORIGENS_AUXILIAR` abans d'escriure res: ara l'error salta quan `Ofertes` ja s'ha reescrit i l'auxiliar s'ha buidat, i els desplegables d'Origen queden sense opcions (`publicacio.test.js` ho documenta).
 - [ ] **`gestionarEdicioMestre`** llegeix la fila sencera en dues funcions diferents (`assignarIdAutomaticSiCal_` i `obtenirOfertaPerFilaMestre_`).
   - **Solució:** llegir-la una vegada i passar els valors.
 
