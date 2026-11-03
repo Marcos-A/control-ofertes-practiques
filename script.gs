@@ -1,5 +1,9 @@
 /*******************************************************
  * CONTROL D'OFERTES I ACORDS DE PRÀCTIQUES
+ * v9: rendiment (reconciliació amb lectures i neteges en bloc, escriptures
+ *     només dels valors que canvien, memòria cau d'execució per a fitxers,
+ *     capçaleres i usos de les ofertes) i correcció de Telèfon i Localitat,
+ *     que s'esborraven en reconciliar o en editar el mestre.
  * v8: reconciliació diferida per evitar assignacions fantasma quan el
  *     bloqueig no és disponible durant edicions múltiples de grup.
  * v7: correcció d'ofertes òrfenes, protecció d'enganxats múltiples al mestre,
@@ -137,12 +141,21 @@ const CFG = Object.freeze({
  ********************************************************/
 
 let _cacheOfertesMestre_ = null;
+let _cacheUsosOfertes_ = null;
+
+// Objectes que no canvien durant una execució: es resolen una sola vegada.
+let _cacheMestre_ = null;
+let _cacheCompartit_ = null;
+let _cacheFullMestre_ = null;
+let _cacheColumnesMestre_ = null;
+const _cacheFullsGrup_ = new Map();
+const _cacheColumnesGrup_ = new Map();
+const _cacheFilesGrupAssegurades_ = new Set();
 
 function obtenirMapaOfertesMestre_() {
   if (_cacheOfertesMestre_) return _cacheOfertesMestre_;
 
-  const master = obtenirMestre_();
-  const sheet = master.getSheetByName(CFG.MASTER_SHEET);
+  const sheet = obtenirFullMestre_();
   const cols = obtenirColumnesMestre_(sheet);
   const lastRow = sheet.getLastRow();
   const map = new Map();
@@ -154,28 +167,9 @@ function obtenirMapaOfertesMestre_() {
       .getValues();
 
     for (let i = 0; i < values.length; i++) {
-      const id = normalitzarId_(values[i][cols.id - 1]);
-      if (id === null || map.has(id)) continue;
-
-      map.set(id, {
-        id,
-        row: i + CFG.FIRST_DATA_ROW,
-        estat: normalitzarText_(values[i][cols.estat - 1]),
-        gestionada: normalitzarText_(values[i][cols.gestionada - 1]),
-        dataContacte: values[i][cols.dataContacte - 1],
-        empresa: values[i][cols.empresa - 1],
-        personaContacte: values[i][cols.personaContacte - 1],
-        correu: values[i][cols.correu - 1],
-        telefon: values[i][cols.telefon - 1],
-        adreca: values[i][cols.adreca - 1],
-        cicle: values[i][cols.cicle - 1],
-        tasques: values[i][cols.tasques - 1],
-        torn: values[i][cols.torn - 1],
-        localitat: values[i][cols.localitat - 1],
-        dataIncorporacio: values[i][cols.dataIncorporacio - 1],
-        modalitat: values[i][cols.modalitat - 1],
-        comentaris: values[i][cols.comentaris - 1]
-      });
+      const offer = construirOfertaDesDeFila_(values[i], i + CFG.FIRST_DATA_ROW, cols);
+      if (offer === null || map.has(offer.id)) continue;
+      map.set(offer.id, offer);
     }
   }
 
@@ -183,8 +177,44 @@ function obtenirMapaOfertesMestre_() {
   return _cacheOfertesMestre_;
 }
 
+function construirOfertaDesDeFila_(values, row, cols) {
+  const id = normalitzarId_(values[cols.id - 1]);
+  if (id === null) return null;
+
+  return {
+    id,
+    row,
+    estat: normalitzarText_(values[cols.estat - 1]),
+    gestionada: normalitzarText_(values[cols.gestionada - 1]),
+    dataContacte: values[cols.dataContacte - 1],
+    empresa: values[cols.empresa - 1],
+    personaContacte: values[cols.personaContacte - 1],
+    correu: values[cols.correu - 1],
+    telefon: values[cols.telefon - 1],
+    adreca: values[cols.adreca - 1],
+    cicle: values[cols.cicle - 1],
+    tasques: values[cols.tasques - 1],
+    torn: values[cols.torn - 1],
+    localitat: values[cols.localitat - 1],
+    dataIncorporacio: values[cols.dataIncorporacio - 1],
+    modalitat: values[cols.modalitat - 1],
+    comentaris: values[cols.comentaris - 1]
+  };
+}
+
 function invalidarCacheOfertesMestre_() {
   _cacheOfertesMestre_ = null;
+}
+
+function invalidarCacheUsosOfertes_() {
+  _cacheUsosOfertes_ = null;
+}
+
+// Cal cridar-la just després d'obtenir el bloqueig: garanteix que les
+// comprovacions es fan amb dades fresques i no amb una lectura anterior.
+function invalidarCachesDades_() {
+  invalidarCacheOfertesMestre_();
+  invalidarCacheUsosOfertes_();
 }
 
 
@@ -468,7 +498,7 @@ function gestionarCanviEstructuralCompartit(e) {
 
   try {
     CFG.GRUPS.forEach(group => {
-      const sheet = obtenirCompartit_().getSheetByName(group);
+      const sheet = obtenirFullGrup_(group);
       if (sheet) assegurarFilesGrup_(sheet);
     });
 
@@ -520,6 +550,7 @@ function gestionarCanviTipus_(e, cols) {
   }
 
   try {
+    invalidarCachesDades_();
     const originCell = sheet.getRange(row, cols.origen);
     const currentOriginRaw = originCell.getValue();
     const currentId = normalitzarId_(currentOriginRaw);
@@ -578,6 +609,7 @@ function gestionarCanviTipus_(e, cols) {
   if (valorOrigenFinal !== undefined) {
     if (valorOrigenFinal === '') originCell.clearContent();
     else originCell.setValue(valorOrigenFinal);
+    invalidarCacheUsosOfertes_();
   }
   if (calNetejar) netejarDadesOfertaFila_(sheet, row, cols);
   else if (forcarNetejaOferta) netejarDadesOfertaFila_(sheet, row, cols);
@@ -617,6 +649,7 @@ function gestionarCanviOrigen_(e, cols) {
   }
 
   try {
+    invalidarCachesDades_();
     if (!newText) {
       if (oldId !== null) {
         calNetejar = obtenirOfertaPerId_(oldId);
@@ -730,8 +763,7 @@ function reservarOfertaSenseLock_(offer, targetState, group) {
     throw new Error('L\'oferta ja no està disponible.');
   }
 
-  const master = obtenirMestre_();
-  const sheet = master.getSheetByName(CFG.MASTER_SHEET);
+  const sheet = obtenirFullMestre_();
   const cols = obtenirColumnesMestre_(sheet);
 
   sheet.getRange(offer.row, cols.estat).setValue(targetState);
@@ -749,8 +781,7 @@ function reservarOfertaSenseLock_(offer, targetState, group) {
 
 
 function actualitzarEstatOfertaActivaSenseLock_(offer, targetState, group) {
-  const master = obtenirMestre_();
-  const sheet = master.getSheetByName(CFG.MASTER_SHEET);
+  const sheet = obtenirFullMestre_();
   const cols = obtenirColumnesMestre_(sheet);
 
   sheet.getRange(offer.row, cols.estat).setValue(targetState);
@@ -787,8 +818,7 @@ function alliberarOfertaSiCorresponSenseLock_(offerId, group) {
   // Si encara hi ha algun altre ús, no l'alliberem automàticament.
   if (teAlgunUs_(offerId, null, null)) return;
 
-  const master = obtenirMestre_();
-  const sheet = master.getSheetByName(CFG.MASTER_SHEET);
+  const sheet = obtenirFullMestre_();
   const cols = obtenirColumnesMestre_(sheet);
 
   sheet.getRange(offer.row, cols.estat).setValue(CFG.ESTATS.PENDENT);
@@ -815,6 +845,7 @@ function gestionarCanviIdMestre_(e, cols) {
   }
 
   try {
+    invalidarCachesDades_();
     if (newId === null) {
       if (normalitzarText_(e.value)) {
         restaurarValor_(e.range, e.oldValue);
@@ -1079,9 +1110,8 @@ function actualitzarPublicacioIAuxiliarSenseLock_() {
    */
   SpreadsheetApp.flush();
 
-  const master = obtenirMestre_();
   const shared = obtenirCompartit_();
-  const masterSheet = master.getSheetByName(CFG.MASTER_SHEET);
+  const masterSheet = obtenirFullMestre_();
   const publicSheet = shared.getSheetByName(CFG.SHARED_OFFERS_SHEET);
   const aux = shared.getSheetByName(CFG.AUX_SHEET);
 
@@ -1191,7 +1221,7 @@ function configurarValidacioTipus_(shared) {
     .build();
 
   CFG.GRUPS.forEach(group => {
-    const sheet = shared.getSheetByName(group);
+    const sheet = obtenirFullGrup_(group);
     assegurarFilesGrup_(sheet);
     const cols = obtenirColumnesGrup_(sheet);
     sheet.getRange(2, cols.tipus, CFG.MAX_ACORDS_PER_GRUP, 1)
@@ -1227,8 +1257,7 @@ function obtenirReglaOrigenComunaContacte_() {
 
 
 function obtenirPendentsIds_() {
-  const master = obtenirMestre_();
-  const sheet = master.getSheetByName(CFG.MASTER_SHEET);
+  const sheet = obtenirFullMestre_();
   const cols = obtenirColumnesMestre_(sheet);
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
@@ -1302,7 +1331,6 @@ function refrescarValidacionsFilesGrup_(sheet, firstRow, lastRow, cols) {
 
 
 function refrescarTotesValidacionsOrigen_() {
-  const shared = obtenirCompartit_();
   const pendingIds = obtenirPendentsIds_();
   const ruleAcord = obtenirReglaOrigenComunaAcord_();
   const ruleContacte = obtenirReglaOrigenComunaContacte_();
@@ -1315,7 +1343,7 @@ function refrescarTotesValidacionsOrigen_() {
    * de la primera arquitectura del sistema.
    */
   CFG.GRUPS.forEach(group => {
-    const sheet = shared.getSheetByName(group);
+    const sheet = obtenirFullGrup_(group);
     assegurarFilesGrup_(sheet);
     const cols = obtenirColumnesGrup_(sheet);
 
@@ -1377,8 +1405,7 @@ function netejarDadesOfertaFila_(sheet, row, cols) {
 function sincronitzarDadesOfertaActiva_(offer) {
   if (!offer || !offer.gestionada || !CFG.GRUPS.includes(offer.gestionada)) return;
 
-  const shared = obtenirCompartit_();
-  const sheet = shared.getSheetByName(offer.gestionada);
+  const sheet = obtenirFullGrup_(offer.gestionada);
   const cols = obtenirColumnesGrup_(sheet);
 
   const lastRow = CFG.MAX_ACORDS_PER_GRUP + 1;
@@ -1397,67 +1424,61 @@ function sincronitzarDadesOfertaActiva_(offer) {
  * RECONCILIACIÓ DESPRÉS D'EDICIONS MÚLTIPLES / FILES
  ********************************************************/
 
+/*
+ * Camps de dades de l'oferta que es copien a la fila del grup
+ * (clau: camp del full de grup, valor: camp de l'oferta del mestre).
+ */
+const CAMPS_DADES_GRUP_ = Object.freeze({
+  personaContacte: 'personaContacte',
+  correu: 'correu',
+  telefon: 'telefon',
+  adreca: 'adreca',
+  localitat: 'localitat',
+  nomEmpresa: 'empresa'
+});
+
+
+/*
+ * RENDIMENT: cada full de grup es llegeix amb UNA sola crida i totes les
+ * neteges d'un full s'apliquen amb UNA sola crida (RangeList). Només es
+ * netegen les cel·les que realment tenen contingut i només s'escriuen al
+ * mestre i als grups els valors que han canviat. Abans, una reconciliació
+ * podia fer milers de crides dins del bloqueig encara que no hi hagués res
+ * a corregir.
+ */
 function reconciliarDesDelCompartitSenseLock_() {
-  const shared = obtenirCompartit_();
-  const master = obtenirMestre_();
-  const masterSheet = master.getSheetByName(CFG.MASTER_SHEET);
+  const masterSheet = obtenirFullMestre_();
   const mcols = obtenirColumnesMestre_(masterSheet);
 
-  const lastMasterRow = masterSheet.getLastRow();
-  const masterData = lastMasterRow >= 2
-    ? masterSheet.getRange(2, 1, lastMasterRow - 1, Math.max(...Object.values(mcols))).getValues()
-    : [];
-
-  const masterMap = new Map();
-  masterData.forEach((row, i) => {
-    const id = normalitzarId_(row[mcols.id - 1]);
-    if (id === null || masterMap.has(id)) return;
-    masterMap.set(id, {
-      id,
-      row: i + 2,
-      estat: normalitzarText_(row[mcols.estat - 1]),
-      gestionada: normalitzarText_(row[mcols.gestionada - 1]),
-      empresa: row[mcols.empresa - 1],
-      personaContacte: row[mcols.personaContacte - 1],
-      correu: row[mcols.correu - 1],
-      adreca: row[mcols.adreca - 1]
-    });
-  });
+  // Som dins del bloqueig: descartem qualsevol lectura anterior del mestre.
+  invalidarCachesDades_();
+  const masterMap = obtenirMapaOfertesMestre_();
 
   const uses = new Map();
+  const grups = [];
 
   CFG.GRUPS.forEach(group => {
-    const sheet = shared.getSheetByName(group);
+    const sheet = obtenirFullGrup_(group);
     assegurarFilesGrup_(sheet);
-    const cols = obtenirColumnesGrup_(sheet);
-    const numRows = CFG.MAX_ACORDS_PER_GRUP;
+    const ctx = llegirBlocGrup_(group, sheet);
+    grups.push(ctx);
 
-    const types = sheet.getRange(2, cols.tipus, numRows, 1).getValues();
-    const origins = sheet.getRange(2, cols.origen, numRows, 1).getValues();
-
-    for (let i = 0; i < numRows; i++) {
-      const row = i + 2;
-      const type = normalitzarText_(types[i][0]);
-      const rawOrigin = origins[i][0];
+    for (let i = 0; i < CFG.MAX_ACORDS_PER_GRUP; i++) {
+      const type = normalitzarText_(valorBlocGrup_(ctx, i, 'tipus'));
+      const rawOrigin = valorBlocGrup_(ctx, i, 'origen');
       const originText = normalitzarText_(rawOrigin);
       const id = normalitzarId_(rawOrigin);
 
       if (!type) {
         // Si s'esborren Tipus i Origen alhora, originText ja és buit.
         // Igualment hem de netejar sempre les dades importades de l'oferta.
-        if (originText) {
-          sheet.getRange(row, cols.origen).clearContent();
-        }
-        netejarDadesOfertaFila_(sheet, row, cols);
+        afegirNetejaFila_(ctx, i, originText !== '');
         continue;
       }
 
-      if (type === CFG.TIPUS.CONTACTE) {
-        if (id === null) {
-          if (originText) sheet.getRange(row, cols.origen).clearContent();
-          netejarDadesOfertaFila_(sheet, row, cols);
-          continue;
-        }
+      if (type === CFG.TIPUS.CONTACTE && id === null) {
+        afegirNetejaFila_(ctx, i, originText !== '');
+        continue;
       }
 
       if (type === CFG.TIPUS.ACORD) {
@@ -1467,10 +1488,9 @@ function reconciliarDesDelCompartitSenseLock_() {
           continue;
         }
         if (id === null) {
-          if (originText) sheet.getRange(row, cols.origen).clearContent();
           // Important en esborrats múltiples: si Origen queda buit, les dades
           // carregades des de l'oferta també han de desaparèixer.
-          netejarDadesOfertaFila_(sheet, row, cols);
+          afegirNetejaFila_(ctx, i, originText !== '');
           continue;
         }
       }
@@ -1480,7 +1500,7 @@ function reconciliarDesDelCompartitSenseLock_() {
       }
 
       if (!uses.has(id)) uses.set(id, []);
-      uses.get(id).push({ group, row, type, sheet, cols });
+      uses.get(id).push({ group, type, ctx, i, row: i + CFG.FIRST_DATA_ROW });
     }
   });
 
@@ -1490,10 +1510,7 @@ function reconciliarDesDelCompartitSenseLock_() {
     const offer = masterMap.get(id);
 
     if (!offer || [CFG.ESTATS.ESPERANT, CFG.ESTATS.DESCARTADA].includes(offer.estat)) {
-      entries.forEach(entry => {
-        entry.sheet.getRange(entry.row, entry.cols.origen).clearContent();
-        netejarDadesOfertaFila_(entry.sheet, entry.row, entry.cols);
-      });
+      entries.forEach(entry => afegirNetejaFila_(entry.ctx, entry.i, true));
       return;
     }
 
@@ -1523,20 +1540,14 @@ function reconciliarDesDelCompartitSenseLock_() {
       offer.gestionada &&
       !entries.some(e => e.group === offer.gestionada)
     ) {
-      entries.forEach(entry => {
-        entry.sheet.getRange(entry.row, entry.cols.origen).clearContent();
-        netejarDadesOfertaFila_(entry.sheet, entry.row, entry.cols);
-      });
+      entries.forEach(entry => afegirNetejaFila_(entry.ctx, entry.i, true));
       return;
     }
 
     if (!keep) keep = entries[0];
 
     entries.forEach(entry => {
-      if (entry !== keep) {
-        entry.sheet.getRange(entry.row, entry.cols.origen).clearContent();
-        netejarDadesOfertaFila_(entry.sheet, entry.row, entry.cols);
-      }
+      if (entry !== keep) afegirNetejaFila_(entry.ctx, entry.i, true);
     });
 
     preserved.set(id, keep);
@@ -1558,19 +1569,21 @@ function reconciliarDesDelCompartitSenseLock_() {
         offer.gestionada === entry.group
       )
     ) {
-      masterSheet.getRange(offer.row, mcols.estat).setValue(targetState);
-      masterSheet.getRange(offer.row, mcols.gestionada).setValue(entry.group);
-      if (targetState === CFG.ESTATS.CONTACTADA) {
-        // Si ja era Contactada, no reiniciem el rellotge.
-        const currentDate = masterSheet.getRange(offer.row, mcols.dataContacte).getValue();
-        if (!(currentDate instanceof Date)) {
-          masterSheet.getRange(offer.row, mcols.dataContacte).setValue(new Date());
-        }
-      }
+      const canviEstat = offer.estat !== targetState;
+      const canviGestionada = offer.gestionada !== entry.group;
+      // Si ja era Contactada amb data, no reiniciem el rellotge.
       // Per a Assignada: conservem Data contacte com a registre d'auditoria.
-      // No la netegem: indica quan es va iniciar el contacte original.
-      configurarFormulaDiesFila_(masterSheet, offer.row, mcols);
-      poblarDadesOfertaFila_(entry.sheet, entry.row, entry.cols, offer);
+      const calData = targetState === CFG.ESTATS.CONTACTADA &&
+        !(offer.dataContacte instanceof Date);
+
+      if (canviEstat) masterSheet.getRange(offer.row, mcols.estat).setValue(targetState);
+      if (canviGestionada) masterSheet.getRange(offer.row, mcols.gestionada).setValue(entry.group);
+      if (calData) masterSheet.getRange(offer.row, mcols.dataContacte).setValue(new Date());
+      if (canviEstat || canviGestionada || calData) {
+        configurarFormulaDiesFila_(masterSheet, offer.row, mcols);
+      }
+
+      poblarDadesOfertaFilaSiCal_(entry.ctx, entry.i, offer);
     }
   });
 
@@ -1585,9 +1598,59 @@ function reconciliarDesDelCompartitSenseLock_() {
     configurarFormulaDiesFila_(masterSheet, offer.row, mcols);
   });
 
-  // La reconciliació pot haver escrit múltiples canvis al mestre.
+  // Una sola crida per full de grup per aplicar totes les neteges.
+  grups.forEach(ctx => {
+    if (ctx.neteges.length > 0) ctx.sheet.getRangeList(ctx.neteges).clearContent();
+  });
+
+  // La reconciliació pot haver escrit múltiples canvis al mestre i als grups.
   // Invalidem la memòria cau perquè qualsevol lectura posterior obtingui dades fresques.
-  invalidarCacheOfertesMestre_();
+  invalidarCachesDades_();
+}
+
+
+function llegirBlocGrup_(group, sheet) {
+  const cols = obtenirColumnesGrup_(sheet);
+  const allCols = Object.values(cols);
+  const firstCol = Math.min(...allCols);
+  const lastCol = Math.max(...allCols);
+  const values = sheet
+    .getRange(CFG.FIRST_DATA_ROW, firstCol, CFG.MAX_ACORDS_PER_GRUP, lastCol - firstCol + 1)
+    .getValues();
+
+  return { group, sheet, cols, firstCol, values, neteges: [] };
+}
+
+
+function valorBlocGrup_(ctx, i, camp) {
+  return ctx.values[i][ctx.cols[camp] - ctx.firstCol];
+}
+
+
+// Anota (sense escriure encara) les cel·les a netejar d'una fila del grup.
+// Només s'hi afegeixen les cel·les que tenen contingut.
+function afegirNetejaFila_(ctx, i, netejarOrigen) {
+  const row = i + CFG.FIRST_DATA_ROW;
+  if (netejarOrigen) ctx.neteges.push(columnToLetter_(ctx.cols.origen) + row);
+
+  Object.keys(CAMPS_DADES_GRUP_).forEach(camp => {
+    if (!esBuit_(valorBlocGrup_(ctx, i, camp))) {
+      ctx.neteges.push(columnToLetter_(ctx.cols[camp]) + row);
+    }
+  });
+}
+
+
+// Escriu a la fila del grup només els camps que difereixen de l'oferta.
+function poblarDadesOfertaFilaSiCal_(ctx, i, offer) {
+  const row = i + CFG.FIRST_DATA_ROW;
+
+  Object.keys(CAMPS_DADES_GRUP_).forEach(camp => {
+    const nou = offer[CAMPS_DADES_GRUP_[camp]] || '';
+    if (!valorsIguals_(valorBlocGrup_(ctx, i, camp), nou)) {
+      ctx.sheet.getRange(row, ctx.cols[camp]).setValue(nou);
+    }
+  });
 }
 
 
@@ -1781,26 +1844,14 @@ function obtenirOfertaPerId_(offerId) {
 
 function obtenirOfertaPerFilaMestre_(sheet, row, cols) {
   const values = sheet.getRange(row, 1, 1, Math.max(...Object.values(cols))).getValues()[0];
-  const id = normalitzarId_(values[cols.id - 1]);
-  if (id === null) return null;
-
-  return {
-    id,
-    row,
-    estat: normalitzarText_(values[cols.estat - 1]),
-    gestionada: normalitzarText_(values[cols.gestionada - 1]),
-    dataContacte: values[cols.dataContacte - 1],
-    empresa: values[cols.empresa - 1],
-    personaContacte: values[cols.personaContacte - 1],
-    correu: values[cols.correu - 1],
-    adreca: values[cols.adreca - 1]
-  };
+  // Inclou tots els camps (també Telèfon i Localitat): sincronitzarDadesOfertaActiva_
+  // els copia al grup i, si faltessin, s'hi escriurien buits.
+  return construirOfertaDesDeFila_(values, row, cols);
 }
 
 
 function trobarFilaAmbIdOferta_(offerId, excludedRow) {
-  const master = obtenirMestre_();
-  const sheet = master.getSheetByName(CFG.MASTER_SHEET);
+  const sheet = obtenirFullMestre_();
   const cols = obtenirColumnesMestre_(sheet);
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return null;
@@ -1815,28 +1866,39 @@ function trobarFilaAmbIdOferta_(offerId, excludedRow) {
 }
 
 
+/*
+ * Mapa id -> usos als fulls de grup. Es construeix una sola vegada per
+ * execució (abans es reconstruïa en cada teAlgunUs_/esUsUnicDeFila_, amb
+ * 11 fulls llegits cada vegada). S'ha d'invalidar amb
+ * invalidarCacheUsosOfertes_() quan s'escriu Tipus u Origen d'un grup.
+ */
 function construirMapaUsosOfertes_() {
-  const shared = obtenirCompartit_();
+  if (_cacheUsosOfertes_) return _cacheUsosOfertes_;
+
   const map = new Map();
 
   CFG.GRUPS.forEach(group => {
-    const sheet = shared.getSheetByName(group);
+    const sheet = obtenirFullGrup_(group);
     const cols = obtenirColumnesGrup_(sheet);
-    const types = sheet.getRange(2, cols.tipus, CFG.MAX_ACORDS_PER_GRUP, 1).getValues();
-    const origins = sheet.getRange(2, cols.origen, CFG.MAX_ACORDS_PER_GRUP, 1).getValues();
+    const firstCol = Math.min(cols.tipus, cols.origen);
+    const width = Math.abs(cols.tipus - cols.origen) + 1;
+    const values = sheet
+      .getRange(CFG.FIRST_DATA_ROW, firstCol, CFG.MAX_ACORDS_PER_GRUP, width)
+      .getValues();
 
-    for (let i = 0; i < origins.length; i++) {
-      const id = normalitzarId_(origins[i][0]);
+    for (let i = 0; i < values.length; i++) {
+      const id = normalitzarId_(values[i][cols.origen - firstCol]);
       if (id === null) continue;
-      const type = normalitzarText_(types[i][0]);
+      const type = normalitzarText_(values[i][cols.tipus - firstCol]);
       if (![CFG.TIPUS.CONTACTE, CFG.TIPUS.ACORD].includes(type)) continue;
 
       if (!map.has(id)) map.set(id, []);
-      map.get(id).push({ group, row: i + 2, type });
+      map.get(id).push({ group, row: i + CFG.FIRST_DATA_ROW, type });
     }
   });
 
-  return map;
+  _cacheUsosOfertes_ = map;
+  return _cacheUsosOfertes_;
 }
 
 
@@ -1908,18 +1970,26 @@ function validarCapcaleresExactes_(sheet, expected) {
 
 
 function assegurarFilesGrup_(sheet) {
+  const name = sheet.getName();
+  if (_cacheFilesGrupAssegurades_.has(name)) return;
+
   const required = CFG.MAX_ACORDS_PER_GRUP + 1;
-  if (sheet.getMaxRows() < required) {
-    sheet.insertRowsAfter(sheet.getMaxRows(), required - sheet.getMaxRows());
+  const maxRows = sheet.getMaxRows();
+  if (maxRows < required) {
+    sheet.insertRowsAfter(maxRows, required - maxRows);
   }
+  _cacheFilesGrupAssegurades_.add(name);
 }
 
 
+// Les capçaleres no canvien durant una execució: es llegeixen una sola vegada.
 function obtenirColumnesMestre_(sheet) {
+  if (_cacheColumnesMestre_) return _cacheColumnesMestre_;
+
   const h = mapaCapcaleres_(sheet);
   const M = CFG.MASTER_HEADERS;
 
-  return {
+  _cacheColumnesMestre_ = {
     id: columnaObligatoria_(h, M.ID, sheet.getName()),
     estat: columnaObligatoria_(h, M.ESTAT, sheet.getName()),
     gestionada: columnaObligatoria_(h, M.GESTIONADA, sheet.getName()),
@@ -1938,14 +2008,18 @@ function obtenirColumnesMestre_(sheet) {
     modalitat: columnaObligatoria_(h, M.MODALITAT, sheet.getName()),
     comentaris: columnaObligatoria_(h, M.COMENTARIS, sheet.getName())
   };
+  return _cacheColumnesMestre_;
 }
 
 
 function obtenirColumnesGrup_(sheet) {
+  const name = sheet.getName();
+  if (_cacheColumnesGrup_.has(name)) return _cacheColumnesGrup_.get(name);
+
   const h = mapaCapcaleres_(sheet);
   const G = CFG.GROUP_HEADERS;
 
-  return {
+  const cols = {
     tipus: columnaObligatoria_(h, G.TIPUS, sheet.getName()),
     origen: columnaObligatoria_(h, G.ORIGEN, sheet.getName()),
     personaContacte: columnaObligatoria_(h, G.PERSONA_CONTACTE, sheet.getName()),
@@ -1955,6 +2029,8 @@ function obtenirColumnesGrup_(sheet) {
     localitat: columnaObligatoria_(h, G.LOCALITAT, sheet.getName()),
     nomEmpresa: columnaObligatoria_(h, G.NOM_EMPRESA, sheet.getName())
   };
+  _cacheColumnesGrup_.set(name, cols);
+  return cols;
 }
 
 
@@ -1984,18 +2060,41 @@ function columnaObligatoria_(headers, name, sheetName) {
  * SPREADSHEETS
  ********************************************************/
 
+// openById és car: cada fitxer s'obre una sola vegada per execució.
 function obtenirMestre_() {
+  if (_cacheMestre_) return _cacheMestre_;
   validarConfiguracio_();
-  return SpreadsheetApp.openById(CFG.MASTER_SPREADSHEET_ID);
+  _cacheMestre_ = SpreadsheetApp.openById(CFG.MASTER_SPREADSHEET_ID);
+  return _cacheMestre_;
 }
 
 
 function obtenirCompartit_() {
+  if (_cacheCompartit_) return _cacheCompartit_;
   const id = PropertiesService.getScriptProperties().getProperty(CFG.PROP_SHARED_ID);
   if (!id) {
     throw new Error('No s\'ha registrat l\'ID del fitxer compartit. Executa instal_larSistema().');
   }
-  return SpreadsheetApp.openById(id);
+  _cacheCompartit_ = SpreadsheetApp.openById(id);
+  return _cacheCompartit_;
+}
+
+
+function obtenirFullMestre_() {
+  if (_cacheFullMestre_) return _cacheFullMestre_;
+  const sheet = obtenirMestre_().getSheetByName(CFG.MASTER_SHEET);
+  if (!sheet) throw new Error(`No existeix el full "${CFG.MASTER_SHEET}" al fitxer mestre.`);
+  _cacheFullMestre_ = sheet;
+  return _cacheFullMestre_;
+}
+
+
+function obtenirFullGrup_(group) {
+  if (_cacheFullsGrup_.has(group)) return _cacheFullsGrup_.get(group);
+  const sheet = obtenirCompartit_().getSheetByName(group);
+  if (!sheet) throw new Error(`No existeix el full de grup "${group}" al fitxer compartit.`);
+  _cacheFullsGrup_.set(group, sheet);
+  return sheet;
 }
 
 
@@ -2025,11 +2124,26 @@ function normalitzarId_(value) {
 
 
 function restaurarValor_(range, oldValue) {
+  // Pot tornar a escriure Tipus u Origen: els usos llegits ja no són vàlids.
+  invalidarCacheUsosOfertes_();
   if (oldValue === undefined || oldValue === null || oldValue === '') {
     range.clearContent();
   } else {
     range.setValue(oldValue);
   }
+}
+
+
+function esBuit_(value) {
+  return value === '' || value === null || value === undefined;
+}
+
+
+function valorsIguals_(a, b) {
+  if (a instanceof Date || b instanceof Date) {
+    return a instanceof Date && b instanceof Date && a.getTime() === b.getTime();
+  }
+  return normalitzarText_(a) === normalitzarText_(b);
 }
 
 
