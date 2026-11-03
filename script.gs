@@ -138,14 +138,28 @@ const CFG = Object.freeze({
 
 
 /********************************************************
- * MEMÒRIA CAU D'EXECUCIÓ DEL MESTRE
+ * MEMÒRIES CAU D'EXECUCIÓ
  *
- * Cada trigger d'Apps Script s'executa en un context net (_cacheOfertesMestre_
- * neix com a null). La primera crida a obtenirMapaOfertesMestre_() llegeix el
- * full sencer del mestre una sola vegada; les lectures posteriors dins del
- * mateix trigger reutilitzen la còpia en memòria. Qualsevol funció que
- * escrigui al mestre ha de cridar invalidarCacheOfertesMestre_() perquè la
- * propera lectura obtingui dades fresques.
+ * Cada trigger d'Apps Script s'executa en un context net: totes les memòries
+ * cau (_cache*) neixen buides i només viuen durant una execució.
+ *
+ * Dades (poden canviar dins d'una execució i s'han d'invalidar):
+ *   _cacheOfertesMestre_  mapa id -> oferta del mestre (obtenirMapaOfertesMestre_).
+ *                         Qualsevol escriptura al mestre ha de cridar
+ *                         invalidarCacheOfertesMestre_().
+ *   _cacheUsosOfertes_    mapa id -> usos als fulls de grup (construirMapaUsosOfertes_).
+ *                         Qualsevol escriptura de Tipus u Origen en un grup ha
+ *                         de cridar invalidarCacheUsosOfertes_().
+ *   Just després d'obtenir el bloqueig cal cridar invalidarCachesDades_(), que
+ *   invalida totes dues: les comprovacions s'han de fer amb dades fresques.
+ *
+ * Estructura (no canvia durant una execució; no cal invalidar-les):
+ *   _cacheMestre_, _cacheCompartit_  fitxers oberts (openById és car);
+ *   _cacheFullMestre_, _cacheFullsGrup_  fulls;
+ *   _cacheColumnesMestre_, _cacheColumnesGrup_, _cacheColumnesPerFull_
+ *                         columnes localitzades per capçalera;
+ *   _cacheFilesGrupAssegurades_, _cacheFullsGrupAssegurats_
+ *                         fulls de grup que ja tenen prou files.
  ********************************************************/
 
 let _cacheOfertesMestre_ = null;
@@ -919,6 +933,7 @@ function gestionarCanviEstatMestre_(e, cols, rowValues) {
   // Els estats gestionats per coordinació no conserven metadades de reserva.
   sheet.getRange(row, cols.gestionada).clearContent();
   sheet.getRange(row, cols.dataContacte).clearContent();
+  invalidarCacheOfertesMestre_();
   configurarFormulaDiesFila_(sheet, row, cols);
 
   actualitzarPublicacio();
@@ -1146,7 +1161,7 @@ function actualitzarPublicacioIAuxiliarSenseLock_() {
   if (lastRow >= CFG.FIRST_DATA_ROW) {
     const lastCol = Math.max(...Object.values(cols));
     const values = masterSheet
-      .getRange(CFG.FIRST_DATA_ROW, 1, lastRow - 1, lastCol)
+      .getRange(CFG.FIRST_DATA_ROW, 1, lastRow - CFG.FIRST_DATA_ROW + 1, lastCol)
       .getValues();
 
     values.forEach((row, i) => {
@@ -1190,7 +1205,7 @@ function actualitzarPublicacioIAuxiliarSenseLock_() {
   // límit s'ha comprovat abans.
   const acord = [CFG.ORIGEN.PROPI, ...pending.map(o => o.id)];
   const auxRows = acord.map((value, i) => [value, i < pending.length ? pending[i].id : '']);
-  sincronitzarBloc_(aux, 2, 1, auxRows, 2, false);
+  sincronitzarBloc_(aux, CFG.FIRST_DATA_ROW, 1, auxRows, 2, false);
 
   // Les validacions d'Origen la poden reutilitzar sense tornar a llegir el mestre.
   return pending.map(o => o.id);
@@ -1237,7 +1252,7 @@ function sincronitzarBloc_(sheet, firstRow, firstCol, rows, width, assegurarFile
 function configurarValidacioEstatsMestre_(master) {
   const sheet = master.getSheetByName(CFG.MASTER_SHEET);
   const cols = obtenirColumnesMestre_(sheet);
-  const numRows = Math.max(sheet.getMaxRows() - 1, 1);
+  const numRows = Math.max(sheet.getMaxRows() - CFG.FIRST_DATA_ROW + 1, 1);
 
   const rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(Object.values(CFG.ESTATS), true)
@@ -1245,7 +1260,7 @@ function configurarValidacioEstatsMestre_(master) {
     .setHelpText('Selecciona un estat vàlid. Contactada i Assignada els gestiona l\'script.')
     .build();
 
-  sheet.getRange(2, cols.estat, numRows, 1).setDataValidation(rule);
+  sheet.getRange(CFG.FIRST_DATA_ROW, cols.estat, numRows, 1).setDataValidation(rule);
 }
 
 
@@ -1260,7 +1275,7 @@ function configurarValidacioTipus_(shared) {
     const sheet = obtenirFullGrup_(group);
     assegurarFilesGrup_(sheet);
     const cols = obtenirColumnesGrup_(sheet);
-    sheet.getRange(2, cols.tipus, CFG.MAX_ACORDS_PER_GRUP, 1)
+    sheet.getRange(CFG.FIRST_DATA_ROW, cols.tipus, CFG.MAX_ACORDS_PER_GRUP, 1)
       .setDataValidation(rule);
   });
 }
@@ -1269,7 +1284,7 @@ function configurarValidacioTipus_(shared) {
 function obtenirReglaOrigenComunaAcord_() {
   const shared = obtenirCompartit_();
   const aux = shared.getSheetByName(CFG.AUX_SHEET);
-  const source = aux.getRange(2, 1, CFG.MAX_ORIGENS_AUXILIAR, 1);
+  const source = aux.getRange(CFG.FIRST_DATA_ROW, 1, CFG.MAX_ORIGENS_AUXILIAR, 1);
 
   return SpreadsheetApp.newDataValidation()
     .requireValueInRange(source, true)
@@ -1282,7 +1297,7 @@ function obtenirReglaOrigenComunaAcord_() {
 function obtenirReglaOrigenComunaContacte_() {
   const shared = obtenirCompartit_();
   const aux = shared.getSheetByName(CFG.AUX_SHEET);
-  const source = aux.getRange(2, 2, CFG.MAX_ORIGENS_AUXILIAR, 1);
+  const source = aux.getRange(CFG.FIRST_DATA_ROW, 2, CFG.MAX_ORIGENS_AUXILIAR, 1);
 
   return SpreadsheetApp.newDataValidation()
     .requireValueInRange(source, true)
@@ -1296,9 +1311,11 @@ function obtenirPendentsIds_() {
   const sheet = obtenirFullMestre_();
   const cols = obtenirColumnesMestre_(sheet);
   const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
+  if (lastRow < CFG.FIRST_DATA_ROW) return [];
 
-  const values = sheet.getRange(2, 1, lastRow - 1, Math.max(cols.id, cols.estat)).getValues();
+  const values = sheet
+    .getRange(CFG.FIRST_DATA_ROW, 1, lastRow - CFG.FIRST_DATA_ROW + 1, Math.max(cols.id, cols.estat))
+    .getValues();
   return values
     .filter(row => normalitzarText_(row[cols.estat - 1]) === CFG.ESTATS.PENDENT)
     .map(row => normalitzarId_(row[cols.id - 1]))
@@ -1727,32 +1744,22 @@ function auditarSistema() {
   const cols = obtenirColumnesMestre_(sheet);
   const lastRow = sheet.getLastRow();
 
-  const seen = new Map();
   const masterMap = new Map();
 
-  if (lastRow >= 2) {
-    const values = sheet.getRange(2, 1, lastRow - 1, Math.max(...Object.values(cols))).getValues();
+  if (lastRow >= CFG.FIRST_DATA_ROW) {
+    const values = sheet
+      .getRange(CFG.FIRST_DATA_ROW, 1, lastRow - CFG.FIRST_DATA_ROW + 1, Math.max(...Object.values(cols)))
+      .getValues();
     values.forEach((row, i) => {
-      const realRow = i + 2;
-      const id = normalitzarId_(row[cols.id - 1]);
-      if (id === null) return;
-
-      if (seen.has(id)) {
-        problems.push(`ID duplicat ${id}: files ${seen.get(id)} i ${realRow} del mestre.`);
-      } else {
-        seen.set(id, realRow);
-      }
+      const offer = construirOfertaDesDeFila_(row, i + CFG.FIRST_DATA_ROW, cols);
+      if (offer === null) return;
 
       // En cas d'una inconsistència prèvia, la primera aparició és la canònica.
       // No permetem que una còpia posterior substitueixi silenciosament l'original.
-      if (!masterMap.has(id)) {
-        masterMap.set(id, {
-          id,
-          row: realRow,
-          estat: normalitzarText_(row[cols.estat - 1]),
-          gestionada: normalitzarText_(row[cols.gestionada - 1]),
-          dataContacte: row[cols.dataContacte - 1]
-        });
+      if (masterMap.has(offer.id)) {
+        problems.push(`ID duplicat ${offer.id}: files ${masterMap.get(offer.id).row} i ${offer.row} del mestre.`);
+      } else {
+        masterMap.set(offer.id, offer);
       }
     });
   }
@@ -1851,9 +1858,9 @@ function formulaDiesContacteR1C1_(cols) {
 function configurarFormulesDiesContacte_(master) {
   const sheet = master.getSheetByName(CFG.MASTER_SHEET);
   const cols = obtenirColumnesMestre_(sheet);
-  const numRows = Math.max(sheet.getMaxRows() - 1, 1);
+  const numRows = Math.max(sheet.getMaxRows() - CFG.FIRST_DATA_ROW + 1, 1);
 
-  const range = sheet.getRange(2, cols.diesContacte, numRows, 1);
+  const range = sheet.getRange(CFG.FIRST_DATA_ROW, cols.diesContacte, numRows, 1);
   range.setFormulaR1C1(formulaDiesContacteR1C1_(cols));
   range.setNumberFormat('0');
 }
@@ -1880,7 +1887,9 @@ function configurarFormulesDiesFiles_(sheet, firstRow, numRows, cols) {
 function configurarFormatContactesAntics_(master) {
   const sheet = master.getSheetByName(CFG.MASTER_SHEET);
   const cols = obtenirColumnesMestre_(sheet);
-  const range = sheet.getRange(2, cols.diesContacte, Math.max(sheet.getMaxRows() - 1, 1), 1);
+  const range = sheet.getRange(
+    CFG.FIRST_DATA_ROW, cols.diesContacte, Math.max(sheet.getMaxRows() - CFG.FIRST_DATA_ROW + 1, 1), 1
+  );
 
   const rules = sheet.getConditionalFormatRules().filter(rule => {
     const ranges = rule.getRanges();
@@ -1918,11 +1927,13 @@ function trobarFilaAmbIdOferta_(offerId, excludedRow) {
   const sheet = obtenirFullMestre_();
   const cols = obtenirColumnesMestre_(sheet);
   const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return null;
+  if (lastRow < CFG.FIRST_DATA_ROW) return null;
 
-  const ids = sheet.getRange(2, cols.id, lastRow - 1, 1).getValues();
+  const ids = sheet
+    .getRange(CFG.FIRST_DATA_ROW, cols.id, lastRow - CFG.FIRST_DATA_ROW + 1, 1)
+    .getValues();
   for (let i = 0; i < ids.length; i++) {
-    const row = i + 2;
+    const row = i + CFG.FIRST_DATA_ROW;
     if (row === excludedRow) continue;
     if (normalitzarId_(ids[i][0]) === offerId) return row;
   }
@@ -2195,8 +2206,9 @@ function normalitzarId_(value) {
 
 
 function restaurarValor_(range, oldValue) {
-  // Pot tornar a escriure Tipus u Origen: els usos llegits ja no són vàlids.
-  invalidarCacheUsosOfertes_();
+  // Pot tornar a escriure Tipus u Origen d'un grup o una cel·la del mestre:
+  // els usos i les ofertes llegits ja no són vàlids.
+  invalidarCachesDades_();
   if (oldValue === undefined || oldValue === null || oldValue === '') {
     range.clearContent();
   } else {
