@@ -248,9 +248,11 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
     - netejar amb un sol `getRangeList(...).clearContent()`;
     - per poblar, escriure només els camps que canvien (com fa `poblarDadesOfertaFilaSiCal_`) o fer un sol `setValues` si les columnes són contigües.
   - Fet: `escriureCampsFila_` escriu amb un `setValues` per tram de columnes contigües (una sola crida amb l'ordre real) i la neteja és un sol `RangeList`. També l'usa la reconciliació. Enganxar 100 files en un grup: de 2.542 a 1.542 crides i de 1.106 a 606 escriptures.
-- [ ] **`configurarFormulaDiesFila_`** (2 crides) s'executa a gairebé totes les edicions del mestre, encara que la fórmula no s'hagi tocat.
+- [x] **`configurarFormulaDiesFila_`** (2 crides) s'executa a gairebé totes les edicions del mestre, encara que la fórmula no s'hagi tocat.
   - **Solució:** mantenir-la només on es restaura la columna Dies en contacte o es crea una fila nova, i treure-la de les edicions de dades normals i dels canvis d'estat.
   - Prerequisit: comprovar amb proves que la fórmula ja és a totes les files des de la instal·lació.
+  - Fet d'una altra manera: el mestre no té trigger onChange i una fila inserida a mà no té la fórmula, de manera que treure-la de les edicions normals deixaria files sense fórmula. Ara llegeix la fórmula i només l'escriu si falta o és diferent (una lectura en lloc de dues escriptures). La prova d'instal·lació comprova totes les files. Escriptures: reserva de 13 a 11, enganxar 100 files en un grup de 606 a 406, edició al mestre de 3 a 1.
+  - A la prova manual: comprovar que `getFormulaR1C1()` retorna exactament la fórmula escrita (si Sheets la normalitza, es continuaria reescrivint com abans, sense cap error).
 - [ ] **`actualitzarPublicacioIAuxiliarSenseLock_`** esborra i reescriu tot el full `Ofertes` i les 2.000 files de l'auxiliar a cada crida.
   - **Solució:**
     - llegir el contingut publicat actual i no escriure res si és idèntic;

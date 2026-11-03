@@ -321,3 +321,23 @@ test('amb el sistema ocupat, un canvi d\'ID es desfà i s\'avisa', () => {
   assert.equal(esc.filaMestre(filaDeId(2)).id, 2);
   assert.deepEqual(esc.avisos(), ['El sistema està ocupat. Torna-ho a provar d\'aquí uns segons.']);
 });
+
+test('la fórmula de Dies en contacte es repara si falta i no es reescriu si ja hi és', () => {
+  const esc = nouEscenari();
+  const formula = formulaDies(esc, filaDeId(1));
+
+  // Una fila inserida a mà al mestre no té la fórmula (el mestre no té onChange).
+  esc.comptador.senseComptar(() => esc.fullMestre.insertRowsAfter(filaDeId(2), 1));
+  const filaNova = filaDeId(2) + 1;
+  assert.equal(formulaDies(esc, filaNova), '');
+
+  esc.editar(esc.fullMestre, filaNova, 'Empresa', 'Empresa inserida');
+  assert.equal(formulaDies(esc, filaNova), formula);
+  assert.equal(esc.filaMestre(filaNova).id, 6);
+
+  // Una edició normal d'una fila amb la fórmula no la torna a escriure.
+  esc.reiniciarRegistres();
+  esc.editar(esc.fullMestre, filaDeId(1), 'Tasques', 'Tasques noves');
+  assert.equal(esc.comptador.perMetode['Range.setFormulaR1C1'] || 0, 0);
+  assert.equal(formulaDies(esc, filaDeId(1)), formula);
+});

@@ -1837,9 +1837,15 @@ function configurarFormulesDiesContacte_(master) {
 }
 
 
+// La fórmula hi és des de la instal·lació: només s'escriu si falta o si
+// algú l'ha modificada (una lectura en lloc de dues escriptures). El mestre no
+// té trigger onChange, i així una fila inserida a mà la rep en editar-la.
 function configurarFormulaDiesFila_(sheet, row, cols) {
   const cell = sheet.getRange(row, cols.diesContacte);
-  cell.setFormulaR1C1(formulaDiesContacteR1C1_(cols));
+  const formula = formulaDiesContacteR1C1_(cols);
+  if (cell.getFormulaR1C1() === formula) return;
+
+  cell.setFormulaR1C1(formula);
   cell.setNumberFormat('0');
 }
 

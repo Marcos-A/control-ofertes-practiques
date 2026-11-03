@@ -127,13 +127,13 @@ test('reserva d\'una oferta (Contacte + ID) en un sistema carregat', () => {
 
   assert.equal(esc.oferta(PRIMERA_PENDENT).estat, 'Contactada');
   // v9: 252 crides (119 Sheet.getName).
-  comprovarPressupost(esc.comptador, { total: 137, getValues: 14, escriptures: 13, celes: 38327 });
+  comprovarPressupost(esc.comptador, { total: 136, getValues: 14, escriptures: 11, celes: 38328 });
 });
 
 test('enganxar 100 files en un grup', () => {
-  // v9: 2.647 crides i 1.106 escriptures. Encara fa unes 15 crides i
-  // 6 escriptures per fila, sobretot la validació d'Origen (secció 3.1).
-  comprovarPressupost(enganxarAlGrup(100), { total: 1542, getValues: 14, escriptures: 606, celes: 45124 });
+  // v9: 2.647 crides i 1.106 escriptures. Encara fa unes 14 crides i
+  // 4 escriptures per fila, sobretot la validació d'Origen (secció 3.1).
+  comprovarPressupost(enganxarAlGrup(100), { total: 1442, getValues: 14, escriptures: 406, celes: 45224 });
 });
 
 test('enganxar 100 files al mestre: el cost creix linealment', () => {
@@ -173,5 +173,5 @@ test('editar una dada d\'una oferta activa al mestre', () => {
 
   assert.equal(esc.filaGrup('GA1A', 2).telefon, 931234567);
   // v9: 64 crides.
-  comprovarPressupost(esc.comptador, { total: 26, getValues: 2, escriptures: 3, celes: 147 });
+  comprovarPressupost(esc.comptador, { total: 25, getValues: 2, escriptures: 1, celes: 148 });
 });

@@ -69,7 +69,9 @@ test('una instal·lació correcta deixa el sistema configurat', () => {
 
   const formula = mestre.getRange(2, colDies).getFormulaR1C1();
   assert.match(formula, /^=IFERROR\(IF\(RC\[-3\]="Contactada";/);
-  assert.equal(mestre.getRange(mestre.getMaxRows(), colDies).getFormulaR1C1(), formula);
+  for (let fila = 2; fila <= mestre.getMaxRows(); fila++) {
+    assert.equal(mestre._cela(fila, colDies)?.formula, formula, `fórmula de la fila ${fila}`);
+  }
   assert.equal(mestre.getRange(2, colDies).getNumberFormat(), '0');
 
   const regles = mestre.getConditionalFormatRules();
