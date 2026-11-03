@@ -107,7 +107,7 @@ Els dobles han de reproduir aquests comportaments de Google Sheets; si no, les p
 - [x] Altres comportaments que l'script necessita i que no eren a la llista: `insertSheet`, `insertColumnsAfter`, `hideSheet`/`isSheetHidden`, `clear()`, `RangeList.getRanges`, `getRanges` de les regles de format, `whenNumberBetween`/`whenNumberGreaterThanOrEqualTo`/`setBackground`/`setRanges` del constructor de formats, `ScriptApp.newTrigger`/`getProjectTriggers`/`deleteTrigger`/`getHandlerFunction` i `getUi().createMenu`.
 - [x] Una cel·la amb fórmula retorna `''` a `getValues()` (les fórmules no s'avaluen), però compta com a contingut per a `getLastRow()`, igual que a Sheets. Per això, després d'instal·lar, el `getLastRow()` del mestre és l'última fila del full (la fórmula de Dies en contacte ocupa tota la columna).
 - [x] `setValue("5")` desa `5`, com a Sheets (afecta `restaurarValor_`), i els rangs fora de la graella llancen un error.
-- [ ] Formats de número: a Sheets, `getValue()` d'una cel·la amb format de data retorna un `Date` encara que s'hi hagi escrit un nombre. El doble desa els formats però no els aplica. Afecta `restaurarValor_` a Data contacte (la prova comprova el nombre de sèrie).
+- [x] Formats de número: a Sheets, `getValue()` d'una cel·la amb format de data retorna un `Date` encara que s'hi hagi escrit un nombre, i escriure una data en una cel·la sense format li dona format de data. El doble ho reprodueix i l'escenari dona format de data a les columnes Data contacte i Data incorporació del mestre; la prova de `restaurarValor_` a Data contacte ja comprova la data.
 
 ### 2.4 Casos de prova
 
@@ -282,9 +282,11 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 
 ### 3.5 A investigar
 
-- [ ] `gestionarCanviEstructuralCompartit` fa una reconciliació completa i refà totes les validacions per a qualsevol inserció o eliminació de files del fitxer compartit, encara que sigui al full `Ofertes`. L'esdeveniment onChange no informa del full afectat.
+- [x] `gestionarCanviEstructuralCompartit` fa una reconciliació completa i refà totes les validacions per a qualsevol inserció o eliminació de files del fitxer compartit, encara que sigui al full `Ofertes`. L'esdeveniment onChange no informa del full afectat.
   - Cal valorar si `e.source.getActiveSheet()` és fiable en aquest context.
   - Si no ho és, deixar-ho com està (és un cas poc freqüent).
+  - Conclusió: es deixa com està. Els dobles no poden demostrar que `getActiveSheet()` sigui fiable en un onChange instal·lable, i un error deixaria ofertes reservades sense ús (o ús sense reserva), mentre que l'estalvi només afecta les insercions i eliminacions de files, que són poc freqüents. A més, després de la fase 2 la reconciliació costa la meitat de crides (de 213 a 109).
+  - Si es vol tornar a valorar: a la prova manual, registrar amb `Logger.log` el nom de `e.source.getActiveSheet()` en inserir i eliminar files des d'un compte de tutor a diversos fulls.
 
 ---
 

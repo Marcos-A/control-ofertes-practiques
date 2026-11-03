@@ -163,6 +163,13 @@ class Escenari {
     const ultimaFilaMestre = Math.max(1, ...ofertes.map((oferta, i) => oferta.fila || i + 2));
     const fullMestre = this.mestre._afegirFull(FULL_MESTRE, Math.max(FILES_PER_DEFECTE, ultimaFilaMestre));
     escriureCapcaleres(fullMestre, COLUMNES_MESTRE.map(([, capcalera]) => capcalera));
+    // Com al fitxer real, les columnes de dates del mestre tenen format de data.
+    ['Data contacte', 'Data incorporació'].forEach(capcalera => {
+      const col = COLUMNES_MESTRE.findIndex(([, c]) => c === capcalera) + 1;
+      for (let fila = 2; fila <= fullMestre._maxFiles; fila++) {
+        fullMestre._celaPerEscriure(fila, col).formatNumero = 'dd/MM/yyyy';
+      }
+    });
 
     if (!ometreFulls.includes(FULL_OFERTES)) {
       escriureCapcaleres(this.compartit._afegirFull(FULL_OFERTES), CAPCALERES_OFERTES);

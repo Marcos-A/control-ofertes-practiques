@@ -29,6 +29,26 @@ test('getValues retorna \'\' per a cel·les buides i conserva nombres i dates', 
   assert.equal(full.getRange(9, 5).getValue(), '');
 });
 
+test('un nombre en una cel·la amb format de data es llegeix com a Date', () => {
+  const { full } = nouFull();
+  const data = new Date(2026, 8, 15);
+  // 46280 és el número de sèrie de Sheets del 15/09/2026.
+  full.getRange(1, 1).setNumberFormat('dd/MM/yyyy');
+  full.getRange(1, 1).setValue('46280');
+  full.getRange(1, 2).setValue('46280');
+
+  assert.ok(full.getRange(1, 1).getValue() instanceof Date);
+  assert.equal(full.getRange(1, 1).getValue().getTime(), data.getTime());
+  assert.equal(full.getRange(1, 1).getDisplayValue(), '15/09/2026');
+  assert.equal(full.getRange(1, 2).getValue(), 46280, 'sense format de data és un nombre');
+
+  // Escriure una data dona format de data a la cel·la, i clearContent el conserva.
+  full.getRange(2, 1).setValue(data);
+  full.getRange(2, 1).clearContent();
+  full.getRange(2, 1).setValue('46280');
+  assert.equal(full.getRange(2, 1).getValue().getTime(), data.getTime());
+});
+
 test('getDisplayValues retorna cadenes', () => {
   const { full } = nouFull();
   full.getRange(1, 1, 1, 2).setValues([[5, new Date(2026, 8, 1)]]);

@@ -52,11 +52,6 @@ function formulaDies(esc, fila) {
   return full.getRange(fila, esc.columna(full, 'Dies en contacte')).getFormulaR1C1();
 }
 
-// Nombre de sèrie de Sheets d'una data (el que arriba a e.oldValue).
-function numeroDeSerie(data) {
-  return (data.getTime() - Date.UTC(1899, 11, 30)) / 86400000 - data.getTimezoneOffset() / 1440;
-}
-
 
 test('editar Gestionada per, Data contacte o Dies en contacte es desfà i s\'avisa', async t => {
   await t.test('Gestionada per', () => {
@@ -86,10 +81,10 @@ test('editar Gestionada per, Data contacte o Dies en contacte es desfà i s\'avi
 
     esc.editar(esc.fullMestre, filaDeId(1), 'Data contacte', '01/11/2026');
 
-    // L'script restaura e.oldValue, que és el nombre de sèrie de la data.
-    // Sheets el mostra com a data perquè la cel·la en conserva el format; el
-    // doble no aplica formats i el retorna com a nombre.
-    assert.equal(esc.oferta(1).dataContacte, numeroDeSerie(DATA_ANTIGA));
+    // L'script restaura e.oldValue, que és el nombre de sèrie de la data; la
+    // cel·la conserva el format de data i es torna a llegir com a Date.
+    assert.ok(esc.oferta(1).dataContacte instanceof Date);
+    assert.equal(esc.oferta(1).dataContacte.getTime(), DATA_ANTIGA.getTime());
     assert.deepEqual(esc.avisos(), [AVIS_CAMPS_SISTEMA]);
   });
 

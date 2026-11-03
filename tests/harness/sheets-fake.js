@@ -151,6 +151,22 @@ function esFormula(valor) {
   return typeof valor === 'string' && valor.startsWith('=');
 }
 
+// Formats de número de data o d'hora ('dd/MM/yyyy', 'yyyy-mm-dd hh:mm'...).
+function esFormatData(format) {
+  return typeof format === 'string' && /[dy]/i.test(format.replace(/"[^"]*"/g, ''));
+}
+
+// Nombre de sèrie de Sheets (dies des del 30/12/1899) a Date, en hora local.
+function dataDeNumeroDeSerie(serie) {
+  const aproximada = new Date(Date.UTC(1899, 11, 30) + serie * 86400000);
+  return new Date(aproximada.getTime() + aproximada.getTimezoneOffset() * 60000);
+}
+
+// Com a Sheets, escriure una data en una cel·la sense format li dona format de data.
+function formatDespresdEscriure(cela, valor) {
+  if (valor instanceof Date && !cela.formatNumero) cela.formatNumero = 'dd/MM/yyyy HH:mm:ss';
+}
+
 function dosDigits(n) {
   return String(n).padStart(2, '0');
 }
@@ -418,9 +434,15 @@ class FakeSheet {
     return cela;
   }
 
+  // Valor tal com el retorna getValue(): com a Sheets, un nombre en una cel·la
+  // amb format de data es llegeix com a Date.
   _valor(fila, columna) {
     const cela = this._cela(fila, columna);
-    return cela ? copiarValor(cela.valor) : '';
+    if (!cela) return '';
+    if (typeof cela.valor === 'number' && esFormatData(cela.formatNumero)) {
+      return dataDeNumeroDeSerie(cela.valor);
+    }
+    return copiarValor(cela.valor);
   }
 
   _establir(fila, columna, valor) {
@@ -533,6 +555,7 @@ class FakeRange {
       } else {
         cela.valor = copiarValor(interpretat);
         cela.formula = null;
+        formatDespresdEscriure(cela, interpretat);
       }
     });
     return this;
@@ -556,6 +579,7 @@ class FakeRange {
       } else {
         cela.valor = interpretat;
         cela.formula = null;
+        formatDespresdEscriure(cela, interpretat);
       }
     });
     return this;
