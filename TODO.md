@@ -2,7 +2,7 @@
 
 Pla de treball pendent per a [`script.gs`](script.gs). Està pensat perquè una persona o un agent el pugui continuar sense context previ.
 
-**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; també hi ha les proves de reconciliació i d'edició als fulls de grup (inclosos edicions múltiples i canvis estructurals). Falten les proves de caracterització de la secció 2.4 d'edició al mestre, publicació i auditoria.
+**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; també hi ha les proves de reconciliació, d'edició als fulls de grup (incloses les edicions múltiples i els canvis estructurals) i d'edició al mestre. Falten les proves de caracterització de la secció 2.4 de publicació i auditoria.
 
 **Ordre recomanat:**
 1. Primer, el banc de proves (secció 2) i les proves de caracterització de la v9 actual.
@@ -107,6 +107,7 @@ Els dobles han de reproduir aquests comportaments de Google Sheets; si no, les p
 - [x] Altres comportaments que l'script necessita i que no eren a la llista: `insertSheet`, `insertColumnsAfter`, `hideSheet`/`isSheetHidden`, `clear()`, `RangeList.getRanges`, `getRanges` de les regles de format, `whenNumberBetween`/`whenNumberGreaterThanOrEqualTo`/`setBackground`/`setRanges` del constructor de formats, `ScriptApp.newTrigger`/`getProjectTriggers`/`deleteTrigger`/`getHandlerFunction` i `getUi().createMenu`.
 - [x] Una cel·la amb fórmula retorna `''` a `getValues()` (les fórmules no s'avaluen), però compta com a contingut per a `getLastRow()`, igual que a Sheets. Per això, després d'instal·lar, el `getLastRow()` del mestre és l'última fila del full (la fórmula de Dies en contacte ocupa tota la columna).
 - [x] `setValue("5")` desa `5`, com a Sheets (afecta `restaurarValor_`), i els rangs fora de la graella llancen un error.
+- [ ] Formats de número: a Sheets, `getValue()` d'una cel·la amb format de data retorna un `Date` encara que s'hi hagi escrit un nombre, i `setValue` en una cel·la amb format de text (`@`) desa el text sense interpretar-lo. El doble desa els formats però no els aplica. Afecta `restaurarValor_` a Data contacte (la prova comprova el nombre de sèrie) i els telèfons de la secció 3.5.
 
 ### 2.4 Casos de prova
 
@@ -144,16 +145,16 @@ Cada cas parteix d'una fixture mínima, simula l'esdeveniment i comprova l'estat
 
 **Edició al mestre** (`edicio-mestre.test.js`)
 
-- [ ] Editar Gestionada per, Data contacte o Dies en contacte: es restaura el valor i s'avisa.
-- [ ] Posar manualment Contactada o Assignada: es rebutja.
-- [ ] Canviar l'estat d'una oferta vinculada a un grup: es rebutja.
-- [ ] Passar una oferta a Pendent, Esperant o Descartada: s'esborren les metadades i es republica.
-- [ ] ID duplicat en una sola cel·la: es rebutja i es conserva la fila preexistent.
-- [ ] Canviar l'ID d'una oferta vinculada: es rebutja.
-- [ ] Enganxar diverses files amb ID duplicats: només s'esborren les còpies dins del rang enganxat.
-- [ ] Enganxar Estat Contactada/Assignada sense ús coherent: torna a Pendent.
-- [ ] ID automàtic: una fila nova amb contingut rep `max(ID) + 1`; una fila buida no en rep.
-- [ ] Editar dades d'una oferta activa: es propaguen a la fila del grup (regressió v9: Telèfon i Localitat incloses).
+- [x] Editar Gestionada per, Data contacte o Dies en contacte: es restaura el valor i s'avisa.
+- [x] Posar manualment Contactada o Assignada: es rebutja.
+- [x] Canviar l'estat d'una oferta vinculada a un grup: es rebutja.
+- [x] Passar una oferta a Pendent, Esperant o Descartada: s'esborren les metadades i es republica.
+- [x] ID duplicat en una sola cel·la: es rebutja i es conserva la fila preexistent.
+- [x] Canviar l'ID d'una oferta vinculada: es rebutja.
+- [x] Enganxar diverses files amb ID duplicats: només s'esborren les còpies dins del rang enganxat.
+- [x] Enganxar Estat Contactada/Assignada sense ús coherent: torna a Pendent.
+- [x] ID automàtic: una fila nova amb contingut rep `max(ID) + 1`; una fila buida no en rep.
+- [x] Editar dades d'una oferta activa: es propaguen a la fila del grup (regressió v9: Telèfon i Localitat incloses).
 
 **Publicació** (`publicacio.test.js`)
 
