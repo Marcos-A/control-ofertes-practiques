@@ -1397,22 +1397,37 @@ function refrescarTotesValidacionsOrigen_() {
 function poblarDadesOfertaFila_(sheet, row, cols, offer) {
   if (!offer) return;
 
-  sheet.getRange(row, cols.personaContacte).setValue(comText_(offer.personaContacte || ''));
-  sheet.getRange(row, cols.correu).setValue(comText_(offer.correu || ''));
-  sheet.getRange(row, cols.telefon).setValue(comText_(offer.telefon || ''));
-  sheet.getRange(row, cols.adreca).setValue(comText_(offer.adreca || ''));
-  sheet.getRange(row, cols.localitat).setValue(comText_(offer.localitat || ''));
-  sheet.getRange(row, cols.nomEmpresa).setValue(comText_(offer.empresa || ''));
+  const valors = {};
+  Object.keys(CAMPS_DADES_GRUP_).forEach(camp => {
+    valors[camp] = offer[CAMPS_DADES_GRUP_[camp]] || '';
+  });
+  escriureCampsFila_(sheet, row, cols, valors);
 }
 
 
 function netejarDadesOfertaFila_(sheet, row, cols) {
-  sheet.getRange(row, cols.personaContacte).clearContent();
-  sheet.getRange(row, cols.correu).clearContent();
-  sheet.getRange(row, cols.telefon).clearContent();
-  sheet.getRange(row, cols.adreca).clearContent();
-  sheet.getRange(row, cols.localitat).clearContent();
-  sheet.getRange(row, cols.nomEmpresa).clearContent();
+  sheet
+    .getRangeList(Object.keys(CAMPS_DADES_GRUP_).map(camp => columnToLetter_(cols[camp]) + row))
+    .clearContent();
+}
+
+
+/*
+ * Escriu a la fila els valors indicats (camp -> valor) amb una crida per cada
+ * tram de columnes contigües: amb l'ordre habitual dels fulls de grup, una
+ * sola crida. Si algú mou les columnes, continua funcionant amb més crides.
+ */
+function escriureCampsFila_(sheet, row, cols, valors) {
+  const camps = Object.keys(valors).sort((a, b) => cols[a] - cols[b]);
+
+  for (let i = 0; i < camps.length;) {
+    let j = i;
+    while (j + 1 < camps.length && cols[camps[j + 1]] === cols[camps[j]] + 1) j++;
+
+    const tram = camps.slice(i, j + 1).map(camp => comText_(valors[camp]));
+    sheet.getRange(row, cols[camps[i]], 1, tram.length).setValues([tram]);
+    i = j + 1;
+  }
 }
 
 
@@ -1657,14 +1672,14 @@ function afegirNetejaFila_(ctx, i, netejarOrigen) {
 
 // Escriu a la fila del grup només els camps que difereixen de l'oferta.
 function poblarDadesOfertaFilaSiCal_(ctx, i, offer) {
-  const row = i + CFG.FIRST_DATA_ROW;
+  const canvis = {};
 
   Object.keys(CAMPS_DADES_GRUP_).forEach(camp => {
     const nou = offer[CAMPS_DADES_GRUP_[camp]] || '';
-    if (!valorsIguals_(valorBlocGrup_(ctx, i, camp), nou)) {
-      ctx.sheet.getRange(row, ctx.cols[camp]).setValue(comText_(nou));
-    }
+    if (!valorsIguals_(valorBlocGrup_(ctx, i, camp), nou)) canvis[camp] = nou;
   });
+
+  escriureCampsFila_(ctx.sheet, i + CFG.FIRST_DATA_ROW, ctx.cols, canvis);
 }
 
 

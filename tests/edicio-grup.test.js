@@ -429,3 +429,28 @@ test('les dades de text de l\'oferta es copien al grup tal com són al mestre', 
     assert.equal(esc.comptador.escriptures(), 0);
   });
 });
+
+test('les dades de l\'empresa es copien i s\'esborren bé encara que les columnes s\'hagin mogut', () => {
+  // Columnes desordenades i una columna aliena enmig de les de l'empresa.
+  const esc = nouEscenari({
+    capcaleresGrup: [
+      'Nom estudiant', 'Telèfon', 'Origen', 'Localitat', 'Persona contacte', 'Data inici',
+      'Correu', 'Tipus', 'Nom empresa', 'Hores completades', 'Adreça', 'NIF empresa',
+      'Conveni signat i retornat'
+    ]
+  });
+  esc.escriureFilaGrup('GA1A', 2, { nomEstudiant: 'Estudiant', dataInici: 'Setembre' });
+
+  triar(esc, 'GA1A', 2, 'Acord', 1);
+  assert.deepEqual(dadesEmpresaFila(esc, 'GA1A', 2), dadesEmpresaDe(ofertaDeMostra(1)));
+  assert.equal(esc.filaGrup('GA1A', 2).nomEstudiant, 'Estudiant');
+
+  esc.editar(esc.fullGrup('GA1A'), 2, 'Origen', '2');
+  assert.deepEqual(dadesEmpresaFila(esc, 'GA1A', 2), dadesEmpresaDe(ofertaDeMostra(2)));
+
+  esc.esborrar(esc.fullGrup('GA1A'), 2, 'Origen');
+  assert.deepEqual(dadesEmpresaFila(esc, 'GA1A', 2), BUIT);
+  const fila = esc.filaGrup('GA1A', 2);
+  assert.deepEqual([fila.nomEstudiant, fila.tipus], ['Estudiant', 'Acord']);
+  assert.equal(esc.fullGrup('GA1A')._valor(2, esc.columna(esc.fullGrup('GA1A'), 'Data inici')), 'Setembre');
+});
