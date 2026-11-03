@@ -1,0 +1,20 @@
+# Executa les proves automatitzades (tests/) a cada push i a cada PR.
+name: Proves
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  proves:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test "tests/**/*.test.js"

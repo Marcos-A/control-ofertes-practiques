@@ -207,7 +207,7 @@ docker run --rm --network none -v "$PWD":/app:ro -w /app node:22-alpine node --t
 - [x] Afegir `package.json` (sense dependències), `Dockerfile` i `.dockerignore` (`.git`, `*.md`, `.claude/`, `privat/`, `*.xlsx`).
 - [x] A Node 22, `node --test tests/` tracta la carpeta com un fitxer i falla: cal el patró `"tests/**/*.test.js"`, que Node expandeix sense necessitat de shell.
 - [x] Documentar l'execució de les proves en una secció nova del README.
-- [ ] (Opcional) GitHub Actions: un flux que executi `node --test` a cada push i a cada PR.
+- [x] (Opcional) GitHub Actions: un flux que executi `node --test` a cada push i a cada PR. Fet: `.github/workflows/proves.yml`.
 
 ---
 

@@ -44,13 +44,14 @@ Al full del seu grup, cada registre té un **Tipus** i un **Origen**:
 | Acord aconseguit pel meu compte | Acord | `propi` | No consumeix cap oferta; les dades s'introdueixen a mà |
 | El contacte no prospera | (esborrar el registre) | | L'oferta torna a *Pendent* |
 
-En reservar una oferta, el sistema emplena automàticament **Persona contacte**, **Correu**, **Telèfon**, **Adreça**, **Localitat** i **Nom empresa**.
+En reservar una oferta, el sistema emplena automàticament **Persona contacte**, **Correu**, **Telèfon**, **Adreça**, **Localitat** i **Nom empresa**, tal com són al mestre. Els registres es fan a les files 2 a 101 de cada full de grup (`MAX_ACORDS_PER_GRUP`); més avall, el sistema rebutja Tipus i Origen.
 
 ### Funcionalitats principals
 
 - Publicació automàtica al full `Ofertes` només de les ofertes *Pendent*, sense dades d'empresa ni de contacte.
 - Reserva exclusiva: dos grups no poden tenir la mateixa oferta alhora (amb bloquejos de `LockService`).
 - Assignació automàtica d'`ID oferta` a les files noves del mestre.
+- Els canvis de dades d'una oferta activa al mestre (editats o enganxats) es copien a la fila del grup que la gestiona.
 - Columna **Dies en contacte** amb format condicional: groc a partir de 7 dies i vermell a partir de 14 (configurable).
 - Reconciliació automàtica després d'enganxats, esborrats múltiples o eliminació de files, i reconciliació diferida si el sistema està ocupat.
 - Menú **Pràctiques** al fitxer compartit per actualitzar la publicació, auditar, reconciliar i reinstal·lar el sistema.
@@ -114,7 +115,9 @@ docker build -t practiques-tests .
 docker run --rm practiques-tests
 ```
 
-Amb Node instal·lat, n'hi ha prou amb `npm test`.
+Amb Node instal·lat, n'hi ha prou amb `npm test`. GitHub Actions executa les mateixes proves a cada push i a cada PR ([`.github/workflows/proves.yml`](.github/workflows/proves.yml)).
+
+A més del comportament, les proves de [`rendiment.test.js`](tests/rendiment.test.js) fixen el nombre màxim de crides a l'API de Sheets, d'escriptures i de cel·les llegides de les operacions principals, per detectar regressions de rendiment.
 
 Les proves no substitueixen la prova manual en còpies dels fitxers reals: no cobreixen els bloquejos reals, el temps dels triggers, els permisos ni la visualització dels desplegables.
 
