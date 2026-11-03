@@ -2,7 +2,7 @@
 
 Pla de treball pendent per a [`script.gs`](script.gs). Està pensat perquè una persona o un agent el pugui continuar sense context previ.
 
-**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; també hi ha les proves de reconciliació, d'edició als fulls de grup (incloses les edicions múltiples i els canvis estructurals) d'edició al mestre, de publicació i d'auditoria: la secció 2.4 està completa. Falten els pressupostos de rendiment de la secció 2.5 i després les optimitzacions de la fase 2.
+**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; també hi ha les proves de reconciliació, d'edició als fulls de grup (incloses les edicions múltiples i els canvis estructurals) d'edició al mestre, de publicació i d'auditoria: la secció 2.4 està completa. Els pressupostos de rendiment de la secció 2.5 estan fixats: ara toquen les optimitzacions de la fase 2.
 
 **Ordre recomanat:**
 1. Primer, el banc de proves (secció 2) i les proves de caracterització de la v9 actual.
@@ -175,9 +175,10 @@ Cada cas parteix d'una fixture mínima, simula l'esdeveniment i comprova l'estat
 Pressupostos de crides a l'API per detectar regressions. Els valors s'han de fixar amb la mesura real de la v9 i ajustar-los a la baixa després de cada optimització.
 
 - [x] Reconciliació sense res a corregir (11 grups × 100 files): 0 escriptures, ≤ 15 `getValues` i ≤ 213 crides en total. Mesura de la v9: 12 `getValues` (les «unes 12 crides» de la prova preliminar només comptaven les lectures de dades) i 213 crides, 127 de les quals són `Sheet.getName` (vegeu 3.3).
-- [ ] Reserva d'una oferta (Contacte + ID): pressupost a fixar.
-- [ ] Enganxar 100 files en un grup: pressupost a fixar.
-- [ ] Enganxar 100 files al mestre: pressupost a fixar; ha de créixer linealment, no quadràticament.
+- [x] Reserva d'una oferta (Contacte + ID) en un sistema carregat (10 grups × 50 Acords i 200 ofertes Pendent): ≤ 252 crides (119 són `Sheet.getName`), 14 `getValues`, 18 escriptures i 38.327 cel·les llegides.
+- [x] Enganxar 100 files en un grup: ≤ 2.647 crides i 1.106 escriptures (unes 24 crides i 11 escriptures per fila: dades de l'empresa i validació d'Origen fila per fila, seccions 3.1 i 3.3), 14 `getValues` i 45.124 cel·les. El cost per fila no augmenta amb la mida de l'enganxat.
+- [x] Enganxar 100 files al mestre: ≤ 857 crides, 201 `getValues`, 108 escriptures i 118.700 cel·les. El cost per fila no augmenta amb la mida de l'enganxat, però cada fila rellegeix tota la columna d'IDs (unes 1.000 cel·les): el cost és el producte de les files enganxades per la mida del mestre. Després de la secció 3.2 hauria de quedar en unes poques cel·les per fila.
+- [x] El comptador suma també les cel·les llegides (`celesLlegides`), perquè el nombre de crides no reflecteix el volum de dades.
 
 ### 2.6 Execució en contenidor
 

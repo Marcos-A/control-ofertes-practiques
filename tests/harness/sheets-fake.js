@@ -47,6 +47,10 @@ class Comptador {
   reiniciar() {
     this.total = 0;
     this.perMetode = {};
+    // Cel·les llegides per les lectures de rangs: mesura el volum de dades,
+    // que el nombre de crides no reflecteix (llegir una columna sencera per
+    // cada fila editada fa créixer el cost amb el producte de totes dues).
+    this.celesLlegides = 0;
   }
 
   registrar(nom) {
@@ -94,6 +98,9 @@ function instrumentar(Classe, prefix) {
       const comptador = this._comptador;
       if (comptador._profunditat === 0 && comptador._silenci === 0) {
         comptador.registrar(`${prefix}.${nom}`);
+        if (prefix === 'Range' && METODES_LECTURA.has(nom)) {
+          comptador.celesLlegides += this._numFiles * this._numColumnes;
+        }
       }
       comptador._profunditat++;
       try {

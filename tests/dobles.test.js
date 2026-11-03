@@ -144,6 +144,19 @@ test('el comptador registra les crides externes, no les internes', () => {
   assert.equal(comptador.escriptures(), 1);
 });
 
+test('el comptador suma les cel·les llegides per les lectures de rangs', () => {
+  const { full, comptador } = nouFull();
+  full.getRange(1, 1, 3, 2).getValues();
+  full.getRange(2, 2).getValue();
+  full.getRange(1, 1, 1, 4).getDisplayValues();
+  full.getRange(1, 1, 5, 5).setValues(Array.from({ length: 5 }, () => [1, 2, 3, 4, 5]));
+  comptador.senseComptar(() => full.getRange(1, 1, 5, 5).getValues());
+
+  assert.equal(comptador.celesLlegides, 6 + 1 + 4);
+  comptador.reiniciar();
+  assert.equal(comptador.celesLlegides, 0);
+});
+
 test('una edició simulada envia cadenes a l\'esdeveniment i desa el valor interpretat', () => {
   const esc = new Escenari({ instal_lar: false });
   const full = esc.fullGrup('GA1A');
