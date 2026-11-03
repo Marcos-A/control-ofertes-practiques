@@ -315,5 +315,5 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
     - `getFormulaR1C1()` retorna exactament la fórmula de Dies en contacte que s'hi ha escrit (si no, es continua reescrivint com a la v9, sense cap error).
     - `setDataValidations` amb `null` en algunes cel·les les deixa sense desplegable, tant en una fila com en un rang.
     - Una republicació sense canvis no modifica Ofertes ni l'auxiliar (es pot veure a l'historial de versions del fitxer compartit).
-    - En un full de grup del fitxer compartit (no al mestre, que no té límit de files), escriure Tipus o Origen a la fila 102 es rebutja amb l'avís «Només es poden registrar contactes i acords a les files 2 a 101», i a la fila 101 funciona.
+    - En un full de grup del fitxer compartit (no al mestre, que no té límit de files), escriure Tipus o Origen a la fila 102 es rebutja amb l'avís «Només es poden registrar contactes i acords a les files 2 a 101», i a la fila 101 funciona. Comprovat.
     - Enganxar el telèfon i l'adreça de dues ofertes actives al mestre actualitza les files dels dos grups.
