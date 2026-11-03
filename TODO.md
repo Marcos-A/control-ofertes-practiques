@@ -2,7 +2,7 @@
 
 Pla de treball pendent per a [`script.gs`](script.gs). Està pensat perquè una persona o un agent el pugui continuar sense context previ.
 
-**Estat actual:** v10. El banc de proves (secció 2) és complet i la fase 2 d'optimització (secció 3) està feta, amb les correccions que han anat sortint. Només queden les proves manuals de la secció 4 en còpies dels fitxers reals.
+**Estat actual:** v10, completa. El banc de proves (secció 2), la fase 2 d'optimització (secció 3) i les proves manuals en còpies dels fitxers reals (secció 4) estan fetes. No queda cap tasca pendent.
 
 **Ordre recomanat:**
 1. Primer, el banc de proves (secció 2) i les proves de caracterització de la v9 actual.
@@ -310,7 +310,7 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 - [x] Els pressupostos de crides de la secció 2.5 es fixen i s'ajusten a la baixa a mesura que s'optimitza.
 - [x] La capçalera de `script.gs` documenta la nova versió (v10) i el README explica com executar les proves.
 - [x] Comprovar en una còpia real que el text amb forma de nombre o de fórmula es copia literalment al grup i a `Ofertes` (`comText_`). Comprovat: el telèfon es copia tal com és al mestre. Els zeros inicials i el `+` només es perden si al mestre s'escriuen sense apòstrof, que és el comportament normal de Sheets en teclejar-los; la guia de coordinació explica com conservar-los.
-- [ ] Prova manual final en còpies dels dos fitxers reals, seguint la llista de proves del README: el banc de proves no cobreix els bloquejos reals, el temps dels triggers, els permisos ni la visualització dels desplegables.
+- [x] Prova manual final en còpies dels dos fitxers reals, seguint la llista de proves del README: el banc de proves no cobreix els bloquejos reals, el temps dels triggers, els permisos ni la visualització dels desplegables. Comprovat el 2026-11-03: tota la llista del README funciona, inclosa la reserva simultània des de dos grups després de la correcció.
   - Comprovacions específiques de la v10, que els dobles no poden confirmar (totes comprovades el 2026-11-03):
     - `getFormulaR1C1()` retorna exactament la fórmula de Dies en contacte que s'hi ha escrit (si no, es continua reescrivint com a la v9, sense cap error). Comprovat.
     - `setDataValidations` amb `null` en algunes cel·les les deixa sense desplegable, tant en una fila com en un rang. Comprovat.
