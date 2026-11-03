@@ -99,6 +99,8 @@ Abans de passar a producció, instal·la el sistema en còpies dels dos fitxers 
 - Esborrar completament una fila
 - Eliminar físicament una fila
 - Intentar assignar la mateixa oferta des de dos grups alhora
+- Una oferta amb el telèfon escrit sense espais (`0034...` o `+34...`): s'ha de copiar igual al grup
+- Enganxar dades d'una oferta activa al mestre: s'han de copiar a la fila del grup
 
 ## Proves automatitzades
 

@@ -2,7 +2,7 @@
 
 Pla de treball pendent per a [`script.gs`](script.gs). Està pensat perquè una persona o un agent el pugui continuar sense context previ.
 
-**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; també hi ha les proves de reconciliació, d'edició als fulls de grup (incloses les edicions múltiples i els canvis estructurals) d'edició al mestre, de publicació i d'auditoria: la secció 2.4 està completa. Els pressupostos de rendiment de la secció 2.5 estan fixats: ara toquen les optimitzacions de la fase 2.
+**Estat actual:** v10. El banc de proves (secció 2) és complet i la fase 2 d'optimització (secció 3) està feta, amb les correccions que han anat sortint. Només queden les proves manuals de la secció 4 en còpies dels fitxers reals.
 
 **Ordre recomanat:**
 1. Primer, el banc de proves (secció 2) i les proves de caracterització de la v9 actual.
@@ -180,6 +180,18 @@ Pressupostos de crides a l'API per detectar regressions. Els valors s'han de fix
 - [x] Enganxar 100 files al mestre: ≤ 857 crides, 201 `getValues`, 108 escriptures i 118.700 cel·les. El cost per fila no augmenta amb la mida de l'enganxat, però cada fila rellegeix tota la columna d'IDs (unes 1.000 cel·les): el cost és el producte de les files enganxades per la mida del mestre. Després de la secció 3.2 hauria de quedar en unes poques cel·les per fila.
 - [x] El comptador suma també les cel·les llegides (`celesLlegides`), perquè el nombre de crides no reflecteix el volum de dades.
 
+Resultat després de la fase 2 (pressupostos actuals de `rendiment.test.js`):
+
+| Operació | Crides v9 → v10 | Escriptures v9 → v10 | Cel·les llegides v9 → v10 |
+|---|---|---|---|
+| Reconciliació sense canvis (11 × 100 files) | 213 → 109 | 0 → 0 | 27.660 → 27.660 |
+| Reserva d'una oferta | 252 → 133 | 18 → 9 | 38.327 → 38.340 |
+| Enganxar 100 files en un grup | 2.647 → 944 | 1.106 → 305 | 45.124 → 45.236 |
+| Enganxar 100 files al mestre | 857 → 38 | 108 → 1 | 118.700 → 21.809 |
+| Editar una dada d'una oferta activa al mestre | 64 → 25 | 8 → 1 | 148 → 148 |
+
+Les cel·les llegides pugen una mica en algunes operacions perquè ara es llegeix el que hi ha abans d'escriure (fórmula, Ofertes i auxiliar): és el preu d'estalviar escriptures, que són les crides més cares.
+
 ### 2.6 Execució en contenidor
 
 `Dockerfile` proposat:
@@ -294,8 +306,14 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 
 - [x] `node --test "tests/**/*.test.js"` passa en verd dins del contenidor.
 - [x] Totes les proves de la secció 2.4 existeixen i passen contra la v9 **abans** de començar la fase 2.
-- [ ] Cada optimització de la secció 3 va en un commit propi i no trenca cap prova.
-- [ ] Els pressupostos de crides de la secció 2.5 es fixen i s'ajusten a la baixa a mesura que s'optimitza.
-- [ ] La capçalera de `script.gs` documenta la nova versió (v10) i el README explica com executar les proves.
+- [x] Cada optimització de la secció 3 va en un commit propi i no trenca cap prova.
+- [x] Els pressupostos de crides de la secció 2.5 es fixen i s'ajusten a la baixa a mesura que s'optimitza.
+- [x] La capçalera de `script.gs` documenta la nova versió (v10) i el README explica com executar les proves.
 - [ ] Comprovar en una còpia real que el text amb forma de nombre o de fórmula es copia literalment al grup i a `Ofertes` (`comText_`): un telèfon `0034...` o `+34...` sense espais, i un comentari que comenci per `=` o `+`. Els dobles reprodueixen l'apòstrof inicial, però no s'ha pogut verificar amb Sheets.
 - [ ] Prova manual final en còpies dels dos fitxers reals, seguint la llista de proves del README: el banc de proves no cobreix els bloquejos reals, el temps dels triggers, els permisos ni la visualització dels desplegables.
+  - Comprovacions específiques de la v10, que els dobles no poden confirmar:
+    - `getFormulaR1C1()` retorna exactament la fórmula de Dies en contacte que s'hi ha escrit (si no, es continua reescrivint com a la v9, sense cap error).
+    - `setDataValidations` amb `null` en algunes cel·les les deixa sense desplegable, tant en una fila com en un rang.
+    - Una republicació sense canvis no modifica Ofertes ni l'auxiliar (es pot veure a l'historial de versions del fitxer compartit).
+    - Un Tipus o un Origen a la fila 102 es rebutja amb l'avís corresponent.
+    - Enganxar el telèfon i l'adreça de dues ofertes actives al mestre actualitza les files dels dos grups.

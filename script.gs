@@ -1,13 +1,20 @@
 /*******************************************************
  * CONTROL D'OFERTES I ACORDS DE PRÀCTIQUES
- * v10 (en curs): correccions trobades amb el banc de proves. El text de les
- *     ofertes es copia literalment al grup i a Ofertes (es perdien els zeros
- *     inicials i el signe + dels telèfons, i el text que començava per = es
- *     convertia en fórmula); el límit del full auxiliar es comprova abans de
- *     publicar; l'auditoria ja no informa de la Data contacte d'ofertes que
- *     no són Contactada; Tipus i Origen només s'accepten a les files que
- *     gestiona el sistema (2 a 101); enganxar dades d'ofertes actives al mestre
- *     les propaga a les files dels grups, com ja feia l'edició d'una cel·la.
+ * v10: correccions trobades amb el banc de proves automatitzades (tests/) i
+ *     fase 2 de rendiment.
+ *     Correccions: el text de les ofertes es copia literalment al grup i a
+ *     Ofertes (es perdien els zeros inicials i el signe + dels telèfons, i el
+ *     text que començava per = es convertia en fórmula); el límit del full
+ *     auxiliar es comprova abans de publicar; l'auditoria ja no informa de la
+ *     Data contacte d'ofertes que no són Contactada; Tipus i Origen només
+ *     s'accepten a les files que gestiona el sistema (2 a 101); enganxar dades
+ *     d'ofertes actives al mestre les propaga a les files dels grups, com ja
+ *     feia l'edició d'una cel·la.
+ *     Rendiment: el nom de cada full i la fila editada del mestre es llegeixen
+ *     una vegada; les dades de l'empresa, les validacions d'Origen i els IDs
+ *     automàtics s'escriuen en bloc; la fórmula de Dies en contacte, Ofertes i
+ *     l'auxiliar només s'escriuen si canvien. Una reserva fa 133 crides (252 a
+ *     la v9) i enganxar 100 files al mestre, 38 (857 a la v9).
  * v9: rendiment (reconciliació amb lectures i neteges en bloc, escriptures
  *     només dels valors que canvien, memòria cau d'execució per a fitxers,
  *     capçaleres i usos de les ofertes) i correcció de Telèfon i Localitat,
