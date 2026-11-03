@@ -49,7 +49,7 @@ En reservar una oferta, el sistema emplena automàticament **Persona contacte**,
 ### Funcionalitats principals
 
 - Publicació automàtica al full `Ofertes` només de les ofertes *Pendent*, sense dades d'empresa ni de contacte.
-- Reserva exclusiva: dos grups no poden tenir la mateixa oferta alhora (amb bloquejos de `LockService`).
+- Reserva exclusiva: dos grups no poden tenir la mateixa oferta alhora (amb bloquejos de `LockService`). Si dos tutors la trien gairebé alhora, se la queda qui l'ha triada primer.
 - Assignació automàtica d'`ID oferta` a les files noves del mestre.
 - Els canvis de dades d'una oferta activa al mestre (editats o enganxats) es copien a la fila del grup que la gestiona.
 - Columna **Dies en contacte** amb format condicional: groc a partir de 7 dies i vermell a partir de 14 (configurable).
@@ -98,7 +98,7 @@ Abans de passar a producció, instal·la el sistema en còpies dels dos fitxers 
 - Canviar una oferta per una altra
 - Esborrar completament una fila
 - Eliminar físicament una fila
-- Intentar assignar la mateixa oferta des de dos grups alhora
+- Intentar assignar la mateixa oferta des de dos grups alhora: se l'ha de quedar el primer grup
 - Una oferta amb el telèfon escrit sense espais (`0034...` o `+34...`): s'ha de copiar igual al grup
 - Enganxar dades d'una oferta activa al mestre: s'han de copiar a la fila del grup
 

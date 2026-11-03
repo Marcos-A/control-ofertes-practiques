@@ -62,6 +62,8 @@ Ara ja pots contactar amb l'empresa.
 
 > **No contactis amb una empresa d'una oferta sense registrar abans el Contacte.** Així evitem que dos tutors gestionin simultàniament la mateixa oferta.
 
+Si dos tutors trien la mateixa oferta gairebé alhora, se la queda qui l'ha triada primer. L'altre veu l'avís «L'oferta ... no està Pendent i no es pot seleccionar» i la seva cel·la *Origen* es buida: comprova sempre que a la fila apareixen les dades de l'empresa abans de contactar-hi.
+
 ## 5\. Si el contacte acaba en acord
 
 No creïs una fila nova.

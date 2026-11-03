@@ -190,20 +190,25 @@ test('triar un ID no disponible es rebutja i el mestre no canvia', async t => {
     });
   }
 
-  await t.test('Pendent però ja usada per una altra fila', () => {
-    const esc = nouEscenari();
-    // Incoherència prèvia: una referència a la 2 sense reservar-la.
-    esc.escriureFilaGrup('GA2A', 4, { tipus: 'Acord', origen: 2 });
-    esc.editar(esc.fullGrup('GA1A'), 2, 'Tipus', 'Acord');
-    const mestre = estatMestre(esc);
-    esc.reiniciarRegistres();
+});
 
-    esc.editar(esc.fullGrup('GA1A'), 2, 'Origen', '2');
+test('una referència sense reserva en un altre grup no impedeix reservar l\'oferta', () => {
+  const esc = nouEscenari();
+  // Resta d'una incoherència prèvia: una referència a la 2 que no s'ha reservat.
+  esc.escriureFilaGrup('GA2A', 4, { tipus: 'Acord', origen: 2 });
+  esc.editar(esc.fullGrup('GA1A'), 2, 'Tipus', 'Acord');
+  esc.reiniciarRegistres();
 
-    assert.equal(esc.filaGrup('GA1A', 2).origen, '');
-    assert.deepEqual(estatMestre(esc), mestre);
-    assert.deepEqual(esc.avisos(), ['L\'oferta 2 ja està vinculada a una altra fila.']);
-  });
+  esc.editar(esc.fullGrup('GA1A'), 2, 'Origen', '2');
+
+  assert.deepEqual([esc.oferta(2).estat, esc.oferta(2).gestionada], ['Assignada', 'GA1A']);
+  assert.deepEqual(esc.avisos(), []);
+
+  // La reconciliació conserva la reserva i neteja la resta.
+  esc.executar('reconciliarSistemaManualment');
+  assert.equal(esc.filaGrup('GA1A', 2).origen, 2);
+  assert.equal(esc.filaGrup('GA2A', 4).origen, '');
+  assert.deepEqual([esc.oferta(2).estat, esc.oferta(2).gestionada], ['Assignada', 'GA1A']);
 });
 
 test('esborrar Origen o Tipus retorna l\'oferta a Pendent i esborra les dades de la fila', async t => {
@@ -493,3 +498,96 @@ test('Tipus i Origen només es gestionen a les files 2 a 101', async t => {
 function metadadesOferta(oferta) {
   return [oferta.estat, oferta.gestionada];
 }
+
+/*
+ * Dues seleccions gairebé simultànies: la segona arriba al full abans que
+ * s'hagi executat el trigger de la primera. Els triggers s'executen en
+ * l'ordre de les edicions, i el primer obté el bloqueig.
+ */
+function seleccionarAlhora(esc, primera, segona, id) {
+  const ordre = [primera, segona].map(([grup, fila]) => {
+    const full = esc.fullGrup(grup);
+    const col = esc.columna(full, 'Origen');
+    full._establir(fila, col, id);
+    return { full, fila, col };
+  });
+  ordre.forEach(({ full, fila, col }) => esc.carregar().gestionarEdicioCompartit({
+    range: esc.comptador.senseComptar(() => full.getRange(fila, col)),
+    value: String(id),
+    oldValue: undefined,
+    source: esc.compartit,
+    authMode: 'FULL',
+    triggerUid: 'proves'
+  }));
+}
+
+test('dues seleccions simultànies de la mateixa oferta: guanya la primera', async t => {
+  for (const tipus of ['Contacte', 'Acord']) {
+    await t.test(tipus, () => {
+      const esc = nouEscenari();
+      esc.editar(esc.fullGrup('GA1A'), 2, 'Tipus', tipus);
+      esc.editar(esc.fullGrup('GA1B'), 5, 'Tipus', tipus);
+      esc.reiniciarRegistres();
+
+      // Regressió: la selecció de GA1B, encara sense processar, feia que GA1A
+      // es rebutgés, i l'oferta acabava a GA1B.
+      seleccionarAlhora(esc, ['GA1A', 2], ['GA1B', 5], 1);
+
+      assert.equal(esc.oferta(1).gestionada, 'GA1A');
+      assert.equal(esc.filaGrup('GA1A', 2).origen, 1);
+      assert.deepEqual(dadesEmpresaFila(esc, 'GA1A', 2), dadesEmpresaDe(ofertaDeMostra(1)));
+      assert.equal(esc.filaGrup('GA1B', 5).origen, '');
+      assert.deepEqual(dadesEmpresaFila(esc, 'GA1B', 5), BUIT);
+      assert.deepEqual(esc.avisos(), ['L\'oferta 1 no està Pendent i no es pot seleccionar.']);
+
+      assert.deepEqual([...esc.executar('auditarSistema')], []);
+    });
+  }
+});
+
+test('dues seleccions simultànies: alliberar una oferta no s\'impedeix per la selecció d\'un altre grup', () => {
+  const esc = nouEscenari();
+  triar(esc, 'GA1A', 2, 'Contacte', 1);
+  esc.editar(esc.fullGrup('GA1B'), 5, 'Tipus', 'Contacte');
+  esc.reiniciarRegistres();
+
+  // GA1A canvia la 1 per la 2 i, abans que es processi, GA1B tria la 1.
+  const fullA = esc.fullGrup('GA1A');
+  const fullB = esc.fullGrup('GA1B');
+  fullA._establir(2, esc.columna(fullA, 'Origen'), 2);
+  fullB._establir(5, esc.columna(fullB, 'Origen'), 1);
+  esc.carregar().gestionarEdicioCompartit({
+    range: fullA.getRange(2, esc.columna(fullA, 'Origen')), value: '2', oldValue: '1',
+    source: esc.compartit, authMode: 'FULL', triggerUid: 'proves'
+  });
+  esc.carregar().gestionarEdicioCompartit({
+    range: fullB.getRange(5, esc.columna(fullB, 'Origen')), value: '1', oldValue: undefined,
+    source: esc.compartit, authMode: 'FULL', triggerUid: 'proves'
+  });
+
+  // La 1 s'ha alliberat en canviar-la GA1A i després l'ha reservada GA1B.
+  assert.deepEqual([esc.oferta(1).estat, esc.oferta(1).gestionada], ['Contactada', 'GA1B']);
+  assert.deepEqual([esc.oferta(2).estat, esc.oferta(2).gestionada], ['Contactada', 'GA1A']);
+  assert.deepEqual([...esc.executar('auditarSistema')], []);
+});
+
+test('dues edicions simultànies: el canvi de Tipus del grup que la gestiona no es bloqueja', () => {
+  const esc = nouEscenari();
+  triar(esc, 'GA1A', 2, 'Contacte', 1);
+  esc.editar(esc.fullGrup('GA1B'), 5, 'Tipus', 'Acord');
+  esc.reiniciarRegistres();
+
+  // GA1B tria la 1 i, abans que es processi, GA1A passa el Contacte a Acord.
+  const fullB = esc.fullGrup('GA1B');
+  const colB = esc.columna(fullB, 'Origen');
+  fullB._establir(5, colB, 1);
+  esc.editar(esc.fullGrup('GA1A'), 2, 'Tipus', 'Acord');
+  esc.carregar().gestionarEdicioCompartit({
+    range: fullB.getRange(5, colB), value: '1', oldValue: undefined,
+    source: esc.compartit, authMode: 'FULL', triggerUid: 'proves'
+  });
+
+  assert.deepEqual([esc.oferta(1).estat, esc.oferta(1).gestionada], ['Assignada', 'GA1A']);
+  assert.equal(esc.filaGrup('GA1B', 5).origen, '');
+  assert.deepEqual(esc.avisos(), ['L\'oferta 1 no està Pendent i no es pot seleccionar.']);
+});

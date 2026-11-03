@@ -9,7 +9,9 @@
  *     Data contacte d'ofertes que no són Contactada; Tipus i Origen només
  *     s'accepten a les files que gestiona el sistema (2 a 101); enganxar dades
  *     d'ofertes actives al mestre les propaga a les files dels grups, com ja
- *     feia l'edició d'una cel·la.
+ *     feia l'edició d'una cel·la; si dos tutors trien la mateixa oferta
+ *     gairebé alhora, se la queda el primer (abans, la selecció encara no
+ *     processada del segon feia rebutjar la del primer).
  *     Rendiment: el nom de cada full i la fila editada del mestre es llegeixen
  *     una vegada; les dades de l'empresa, les validacions d'Origen i els IDs
  *     automàtics s'escriuen en bloc; la fórmula de Dies en contacte, Ofertes i
@@ -596,7 +598,7 @@ function gestionarCanviTipus_(e, cols) {
       if (!offer) {
         valorOrigenFinal = '';
         forcarNetejaOferta = true;
-      } else if (!esUsUnicDeFila_(currentId, group, row)) {
+      } else if (teUsConfirmatEnAltraFila_(offer, group, row)) {
         restaurarValor_(e.range, e.oldValue);
         avisarEn_(e.source, `L'oferta ${currentId} està vinculada a una altra fila.`);
         return;
@@ -709,11 +711,10 @@ function gestionarCanviOrigen_(e, cols) {
         return;
       }
 
-      if (teAlgunUs_(newId, group, row)) {
-        restaurarValor_(e.range, e.oldValue);
-        avisarEn_(e.source, `L'oferta ${newId} ja està vinculada a una altra fila.`);
-        return;
-      }
+      // Una oferta Pendent no té cap ús confirmat: si una altra fila també la
+      // té com a Origen, és una selecció que encara no s'ha processat (el seu
+      // trigger la rebutjarà) o una resta que netejarà la reconciliació. La
+      // reserva és de qui obté primer el bloqueig.
 
       const targetState = type === CFG.TIPUS.CONTACTE
         ? CFG.ESTATS.CONTACTADA
@@ -840,8 +841,9 @@ function alliberarOfertaSiCorresponSenseLock_(offerId, group) {
     return;
   }
 
-  // Si encara hi ha algun altre ús, no l'alliberem automàticament.
-  if (teAlgunUs_(offerId, null, null)) return;
+  // Si una altra fila del grup encara la fa servir, no l'alliberem. Les
+  // referències d'altres grups no la retenen (vegeu teUsConfirmatEnAltraFila_).
+  if (teUsConfirmatEnAltraFila_(offer, null, null)) return;
 
   const sheet = obtenirFullMestre_();
   const cols = obtenirColumnesMestre_(sheet);
@@ -1950,7 +1952,7 @@ function trobarFilaAmbIdOferta_(offerId, excludedRow) {
 
 /*
  * Mapa id -> usos als fulls de grup. Es construeix una sola vegada per
- * execució (abans es reconstruïa en cada teAlgunUs_/esUsUnicDeFila_, amb
+ * execució (abans es reconstruïa en cada comprovació d'usos, amb
  * 11 fulls llegits cada vegada). S'ha d'invalidar amb
  * invalidarCacheUsosOfertes_() quan s'escriu Tipus u Origen d'un grup.
  */
@@ -1990,9 +1992,21 @@ function teAlgunUs_(offerId, excludeGroup, excludeRow) {
 }
 
 
-function esUsUnicDeFila_(offerId, group, row) {
-  const uses = construirMapaUsosOfertes_().get(offerId) || [];
-  return uses.length === 1 && uses[0].group === group && uses[0].row === row;
+/*
+ * Ús confirmat d'una oferta activa en una fila que no és (group, row): només
+ * compten les files del grup que la gestiona segons el mestre. Una referència
+ * en un altre grup pot ser una selecció que encara no s'ha processat (el seu
+ * trigger la rebutjarà perquè l'oferta ja no és Pendent) o una resta que la
+ * reconciliació netejarà; no ha d'impedir reservar, canviar o alliberar.
+ */
+function teUsConfirmatEnAltraFila_(offer, group, row) {
+  if (!offer || !offer.gestionada) return false;
+  if (![CFG.ESTATS.CONTACTADA, CFG.ESTATS.ASSIGNADA].includes(offer.estat)) return false;
+
+  const uses = construirMapaUsosOfertes_().get(offer.id) || [];
+  return uses.some(use =>
+    use.group === offer.gestionada && !(use.group === group && use.row === row)
+  );
 }
 
 
