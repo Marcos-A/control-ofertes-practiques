@@ -341,3 +341,24 @@ test('la fórmula de Dies en contacte es repara si falta i no es reescriu si ja 
   assert.equal(esc.comptador.perMetode['Range.setFormulaR1C1'] || 0, 0);
   assert.equal(formulaDies(esc, filaDeId(1)), formula);
 });
+
+test('enganxar dades d\'ofertes actives al mestre les propaga a les files dels grups', () => {
+  const esc = nouEscenari();
+  reservar(esc, 'GA1A', 4, 'Contacte', 1);
+  reservar(esc, 'GA2B', 7, 'Acord', 2);
+  esc.reiniciarRegistres();
+
+  // Files 2 a 4 (ofertes 1 a 3), columnes Telèfon i Adreça. La 3 és Pendent.
+  esc.enganxar(esc.fullMestre, filaDeId(1), 'Telèfon', [
+    ['93 111 1111', 'Carrer nou 1'],
+    ['0034932222222', 'Carrer nou 2'],
+    ['93 333 3333', 'Carrer nou 3']
+  ]);
+
+  const g1 = esc.filaGrup('GA1A', 4);
+  const g2 = esc.filaGrup('GA2B', 7);
+  assert.deepEqual([g1.telefon, g1.adreca], ['93 111 1111', 'Carrer nou 1']);
+  assert.deepEqual([g2.telefon, g2.adreca], [esc.oferta(2).telefon, 'Carrer nou 2']);
+  assert.equal(g1.nomEmpresa, ofertaDeMostra(1).empresa);
+  assert.deepEqual(esc.avisos(), []);
+});

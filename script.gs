@@ -6,7 +6,8 @@
  *     convertia en fórmula); el límit del full auxiliar es comprova abans de
  *     publicar; l'auditoria ja no informa de la Data contacte d'ofertes que
  *     no són Contactada; Tipus i Origen només s'accepten a les files que
- *     gestiona el sistema (2 a 101).
+ *     gestiona el sistema (2 a 101); enganxar dades d'ofertes actives al mestre
+ *     les propaga a les files dels grups, com ja feia l'edició d'una cel·la.
  * v9: rendiment (reconciliació amb lectures i neteges en bloc, escriptures
  *     només dels valors que canvien, memòria cau d'execució per a fitxers,
  *     capçaleres i usos de les ofertes) i correcció de Telèfon i Localitat,
@@ -1052,6 +1053,19 @@ function gestionarEdicioMultipleMestre_(e, cols) {
     }
   }
 
+  // Les dades de l'empresa d'una oferta activa també són a la fila del grup.
+  const dataCols = Object.values(CAMPS_DADES_GRUP_).map(camp => cols[camp]);
+  if (dataCols.some(col => col >= firstCol && col <= lastCol)) {
+    const sheet = e.range.getSheet();
+    const firstRow = range.getRow();
+    const values = sheet
+      .getRange(firstRow, 1, range.getNumRows(), Math.max(...Object.values(cols)))
+      .getValues();
+    sincronitzarDadesOfertesActives_(
+      values.map((row, i) => construirOfertaDesDeFila_(row, firstRow + i, cols))
+    );
+  }
+
   configurarFormulesDiesContacte_(e.source);
   actualitzarPublicacio();
 }
@@ -1449,20 +1463,35 @@ function escriureCampsFila_(sheet, row, cols, valors) {
 
 
 function sincronitzarDadesOfertaActiva_(offer) {
-  if (!offer || !offer.gestionada || !CFG.GRUPS.includes(offer.gestionada)) return;
+  sincronitzarDadesOfertesActives_([offer]);
+}
 
-  const sheet = obtenirFullGrup_(offer.gestionada);
-  const cols = obtenirColumnesGrup_(sheet);
 
-  const lastRow = CFG.MAX_ACORDS_PER_GRUP + 1;
-  const origins = sheet.getRange(2, cols.origen, CFG.MAX_ACORDS_PER_GRUP, 1).getValues();
+/*
+ * Copia les dades de l'empresa de les ofertes actives a la fila del grup que
+ * les gestiona. Es llegeix la columna Origen una sola vegada per grup.
+ */
+function sincronitzarDadesOfertesActives_(offers) {
+  const perGrup = new Map();
+  offers.forEach(offer => {
+    if (!offer || !offer.gestionada || !CFG.GRUPS.includes(offer.gestionada)) return;
+    if (![CFG.ESTATS.CONTACTADA, CFG.ESTATS.ASSIGNADA].includes(offer.estat)) return;
+    if (!perGrup.has(offer.gestionada)) perGrup.set(offer.gestionada, []);
+    perGrup.get(offer.gestionada).push(offer);
+  });
 
-  for (let i = 0; i < origins.length; i++) {
-    if (normalitzarId_(origins[i][0]) === offer.id) {
-      poblarDadesOfertaFila_(sheet, i + 2, cols, offer);
-      return;
-    }
-  }
+  perGrup.forEach((groupOffers, group) => {
+    const sheet = obtenirFullGrup_(group);
+    const cols = obtenirColumnesGrup_(sheet);
+    const origins = sheet
+      .getRange(CFG.FIRST_DATA_ROW, cols.origen, CFG.MAX_ACORDS_PER_GRUP, 1)
+      .getValues();
+
+    groupOffers.forEach(offer => {
+      const i = origins.findIndex(row => normalitzarId_(row[0]) === offer.id);
+      if (i >= 0) poblarDadesOfertaFila_(sheet, i + CFG.FIRST_DATA_ROW, cols, offer);
+    });
+  });
 }
 
 

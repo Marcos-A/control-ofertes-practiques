@@ -269,7 +269,7 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 
 ### 3.4 Neteja i coherència (sense impacte funcional)
 
-- [ ] `sincronitzarDadesOfertaActiva_`: variable no usada `lastRow`. Es pot llegir només la columna Origen fent servir `CFG.FIRST_DATA_ROW` en lloc del literal `2`.
+- [x] `sincronitzarDadesOfertaActiva_`: variable no usada `lastRow`. Es pot llegir només la columna Origen fent servir `CFG.FIRST_DATA_ROW` en lloc del literal `2`. Fet: ara és `sincronitzarDadesOfertesActives_`, que agrupa les ofertes per grup.
 - [ ] `auditarSistema`: construeix el seu propi mapa del mestre. Pot reutilitzar `construirOfertaDesDeFila_` mantenint la detecció de duplicats.
 - [ ] Substituir els literals `2` per `CFG.FIRST_DATA_ROW` a tot el fitxer.
 - [ ] Actualitzar el comentari de la secció «MEMÒRIA CAU D'EXECUCIÓ DEL MESTRE» perquè descrigui totes les memòries cau i les regles d'invalidació (vegeu 1.2).

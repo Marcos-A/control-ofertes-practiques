@@ -145,7 +145,7 @@ test('enganxar 100 files al mestre: el cost creix linealment', () => {
   // d'IDs (unes 1.000 cel·les amb el mestre de 1.000 files): el cost és el
   // producte de les files enganxades per la mida del mestre (secció 3.2).
   const real = comprovarPressupost(enganxarAlMestre(100), {
-    total: 741, getValues: 201, escriptures: 108, celes: 118600
+    total: 746, getValues: 202, escriptures: 108, celes: 120300
   });
   assert.deepEqual(real, gran);
 
