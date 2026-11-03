@@ -123,17 +123,25 @@ function copiarValor(valor) {
 }
 
 // Interpreta un valor com ho fa Sheets en escriure'l: les cadenes numèriques
-// es desen com a nombres i TRUE/FALSE com a booleans.
+// es desen com a nombres (es perden els zeros inicials i el signe +) i
+// TRUE/FALSE com a booleans. Un apòstrof inicial força el text: no es desa i
+// la resta de la cadena es conserva tal qual.
 function interpretarValor(valor) {
   if (valor === null || valor === undefined) return '';
   if (valor instanceof Date) return new Date(valor.getTime());
   if (typeof valor !== 'string') return valor;
+  if (valor.startsWith('\'')) return valor.slice(1);
 
   const text = valor.trim();
-  if (/^-?\d+(\.\d+)?$/.test(text)) return Number(text);
+  if (/^[+-]?\d+(\.\d+)?$/.test(text)) return Number(text);
   if (/^true$/i.test(text)) return true;
   if (/^false$/i.test(text)) return false;
   return valor;
+}
+
+// Una cadena que comença per = és una fórmula; amb apòstrof («'=...») és text.
+function esFormula(valor) {
+  return typeof valor === 'string' && valor.startsWith('=');
 }
 
 function dosDigits(n) {
@@ -512,7 +520,7 @@ class FakeRange {
   setValue(valor) {
     const interpretat = interpretarValor(valor);
     this._recorrer(cela => {
-      if (typeof interpretat === 'string' && interpretat.startsWith('=')) {
+      if (esFormula(valor)) {
         cela.valor = '';
         cela.formula = interpretat;
       } else {
@@ -535,7 +543,7 @@ class FakeRange {
     }
     this._recorrer((cela, i, j) => {
       const interpretat = interpretarValor(valors[i][j]);
-      if (typeof interpretat === 'string' && interpretat.startsWith('=')) {
+      if (esFormula(valors[i][j])) {
         cela.valor = '';
         cela.formula = interpretat;
       } else {

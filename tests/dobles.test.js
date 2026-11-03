@@ -43,6 +43,19 @@ test('setValue interpreta les cadenes numèriques com fa Sheets', () => {
   assert.equal(full.getRange(1, 2).getValue(), 'propi');
 });
 
+test('setValue perd els zeros inicials i el signe +, i l\'apòstrof força el text', () => {
+  const { full } = nouFull();
+  full.getRange(1, 1).setValue('0034930000001');
+  full.getRange(1, 2).setValue('+34930000001');
+  full.getRange(1, 3).setValue('\'0034930000001');
+  full.getRange(1, 4).setValue('\'=SUMA(1;2)');
+  full.getRange(2, 1, 1, 2).setValues([['\'+34930000001', '\'5']]);
+
+  assert.deepEqual(full.getRange(1, 1, 1, 4).getValues(), [[34930000001, 34930000001, '0034930000001', '=SUMA(1;2)']]);
+  assert.equal(full.getRange(1, 4).getFormula(), '');
+  assert.deepEqual(full.getRange(2, 1, 1, 2).getValues(), [['+34930000001', '5']]);
+});
+
 test('getLastRow i getLastColumn ignoren el final buit, però compten les fórmules', () => {
   const { full } = nouFull(10, 5);
   assert.equal(full.getLastRow(), 0);
