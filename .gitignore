@@ -34,3 +34,7 @@ desktop.ini
 node_modules/
 .env
 .env.*
+
+# Còpies dels fitxers reals (dades personals): només per a consulta local
+/privat/
+*.xlsx

@@ -1,0 +1,11 @@
+{
+  "name": "control-ofertes-practiques",
+  "private": true,
+  "description": "Proves automatitzades de script.gs amb dobles en memòria dels serveis d'Apps Script",
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

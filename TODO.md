@@ -2,7 +2,7 @@
 
 Pla de treball pendent per a [`script.gs`](script.gs). Està pensat perquè una persona o un agent el pugui continuar sense context previ.
 
-**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. Encara no hi ha cap prova automatitzada.
+**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; falten la resta de proves de caracterització de la secció 2.4.
 
 **Ordre recomanat:**
 1. Primer, el banc de proves (secció 2) i les proves de caracterització de la v9 actual.
@@ -20,6 +20,7 @@ Pla de treball pendent per a [`script.gs`](script.gs). Està pensat perquè una 
   - `gestionarCanviEstructuralCompartit`: onChange del fitxer compartit.
   - `gestionarEdicioMestre`: onEdit del fitxer mestre.
 - Cada execució d'un trigger comença amb l'estat global net. Les memòries cau (`_cache*`) només viuen durant una execució.
+- L'script localitza les columnes per capçalera. Les columnes dels fulls de grup que no fa servir (dades de l'estudiant, dates, hores...) es poden moure, amagar, eliminar o reanomenar sense cap conseqüència.
 - El cost real d'Apps Script és el **nombre de crides** al servei de Sheets (`getRange`, `getValue(s)`, `setValue(s)`, `clearContent`, `openById`...), no el JavaScript en si.
 
 ### 1.2 Invariants que no es poden trencar
@@ -34,6 +35,7 @@ Pla de treball pendent per a [`script.gs`](script.gs). Està pensat perquè una 
 - **Publicació:** el full `Ofertes` només mostra ofertes Pendent i mai dades de contacte de l'empresa.
 - **Data contacte:** es conserva en passar de Contactada a Assignada (registre d'auditoria).
 - `CFG.MASTER_SPREADSHEET_ID` s'ha de mantenir amb el valor de mostra `ENGANXA_AQUI_ID_FITXER_MESTRE` al repositori.
+- La carpeta `privat/` conté còpies dels fitxers reals (amb dades personals) només per consultar-ne l'estructura. Està exclosa de git i de Docker i no se n'ha de copiar cap dada a les proves ni als commits. Les fixtures de `tests/harness/escenari.js` reprodueixen l'ordre real de les columnes amb dades inventades.
 
 ### 1.3 Convencions del repositori
 
@@ -60,7 +62,7 @@ Proves d'integració sobre **dobles en memòria** dels serveis d'Apps Script. L'
 ### 2.2 Estructura proposada
 
 ```
-package.json                 scripts.test = "node --test tests/"
+package.json                 scripts.test = "node --test \"tests/**/*.test.js\""
 Dockerfile                   imatge mínima per executar les proves
 .dockerignore
 tests/
@@ -86,22 +88,25 @@ tests/
 
 Els dobles han de reproduir aquests comportaments de Google Sheets; si no, les proves donaran falsos positius:
 
-- [ ] `getValues()` retorna `''` per a cel·les buides, nombres com a `number` i dates com a `Date`.
-- [ ] `getDisplayValues()` retorna cadenes.
-- [ ] En un esdeveniment onEdit d'una sola cel·la, `e.value` i `e.oldValue` són **cadenes** (o `undefined` si la cel·la era o queda buida), mentre que la cel·la emmagatzema el valor interpretat: `"5"` es desa com a `5`.
-- [ ] En edicions de diverses cel·les (enganxar, esborrar un rang), `e.value` i `e.oldValue` són `undefined`.
-- [ ] `e.range` i `e.source` apunten als objectes falsos. L'esdeveniment onChange té `changeType` (`INSERT_ROW`, `REMOVE_ROW`...) i `source`.
-- [ ] `getLastRow()` i `getLastColumn()` ignoren les files i columnes buides del final; `getMaxRows()` i `getMaxColumns()` retornen la mida de la graella.
-- [ ] `insertRowsAfter`, `deleteRow(s)` i `insertRow(s)` desplacen les dades (cal per a les proves de canvi estructural).
-- [ ] `clearContent()` esborra valors i fórmules però conserva la validació i el format.
-- [ ] `getRangeList(a1s).clearContent()` interpreta notació A1 (`"D12"`, `"AA3"`).
-- [ ] `setFormulaR1C1` i `setNumberFormat` es desen per poder-los comprovar.
-- [ ] `setDataValidation(s)` i `clearDataValidations()` desen la regla per cel·la. El constructor de regles admet `requireValueInList`, `requireValueInRange`, `setAllowInvalid`, `setHelpText` i `build`.
-- [ ] `getConditionalFormatRules` i `setConditionalFormatRules` funcionen amb regles opaques.
-- [ ] `toast(msg, títol, s)` registra els missatges per comprovar els avisos a l'usuari.
-- [ ] `LockService.getScriptLock().waitLock(ms)` es pot configurar perquè falli i simular el sistema ocupat. `releaseLock()` també s'ha de poder comprovar.
-- [ ] `PropertiesService.getScriptProperties()` és un magatzem clau-valor persistent entre execucions dins d'una mateixa prova.
-- [ ] **Comptador de crides:** totes les crides de `FakeSheet`, `FakeRange`, `FakeRangeList` i `openById` incrementen un comptador que les proves poden llegir i reiniciar, amb el detall per mètode.
+- [x] `getValues()` retorna `''` per a cel·les buides, nombres com a `number` i dates com a `Date`.
+- [x] `getDisplayValues()` retorna cadenes.
+- [x] En un esdeveniment onEdit d'una sola cel·la, `e.value` i `e.oldValue` són **cadenes** (o `undefined` si la cel·la era o queda buida), mentre que la cel·la emmagatzema el valor interpretat: `"5"` es desa com a `5`.
+- [x] En edicions de diverses cel·les (enganxar, esborrar un rang), `e.value` i `e.oldValue` són `undefined`.
+- [x] `e.range` i `e.source` apunten als objectes falsos. L'esdeveniment onChange té `changeType` (`INSERT_ROW`, `REMOVE_ROW`...) i `source`.
+- [x] `getLastRow()` i `getLastColumn()` ignoren les files i columnes buides del final; `getMaxRows()` i `getMaxColumns()` retornen la mida de la graella.
+- [x] `insertRowsAfter`, `deleteRow(s)` i `insertRow(s)` desplacen les dades (cal per a les proves de canvi estructural).
+- [x] `clearContent()` esborra valors i fórmules però conserva la validació i el format.
+- [x] `getRangeList(a1s).clearContent()` interpreta notació A1 (`"D12"`, `"AA3"`).
+- [x] `setFormulaR1C1` i `setNumberFormat` es desen per poder-los comprovar.
+- [x] `setDataValidation(s)` i `clearDataValidations()` desen la regla per cel·la. El constructor de regles admet `requireValueInList`, `requireValueInRange`, `setAllowInvalid`, `setHelpText` i `build`.
+- [x] `getConditionalFormatRules` i `setConditionalFormatRules` funcionen amb regles opaques.
+- [x] `toast(msg, títol, s)` registra els missatges per comprovar els avisos a l'usuari.
+- [x] `LockService.getScriptLock().waitLock(ms)` es pot configurar perquè falli i simular el sistema ocupat. `releaseLock()` també s'ha de poder comprovar.
+- [x] `PropertiesService.getScriptProperties()` és un magatzem clau-valor persistent entre execucions dins d'una mateixa prova.
+- [x] **Comptador de crides:** totes les crides de `FakeSheet`, `FakeRange`, `FakeRangeList` i `openById` incrementen un comptador que les proves poden llegir i reiniciar, amb el detall per mètode.
+- [x] Altres comportaments que l'script necessita i que no eren a la llista: `insertSheet`, `insertColumnsAfter`, `hideSheet`/`isSheetHidden`, `clear()`, `RangeList.getRanges`, `getRanges` de les regles de format, `whenNumberBetween`/`whenNumberGreaterThanOrEqualTo`/`setBackground`/`setRanges` del constructor de formats, `ScriptApp.newTrigger`/`getProjectTriggers`/`deleteTrigger`/`getHandlerFunction` i `getUi().createMenu`.
+- [x] Una cel·la amb fórmula retorna `''` a `getValues()` (les fórmules no s'avaluen), però compta com a contingut per a `getLastRow()`, igual que a Sheets. Per això, després d'instal·lar, el `getLastRow()` del mestre és l'última fila del full (la fórmula de Dies en contacte ocupa tota la columna).
+- [x] `setValue("5")` desa `5`, com a Sheets (afecta `restaurarValor_`), i els rangs fora de la graella llancen un error.
 
 ### 2.4 Casos de prova
 
@@ -159,16 +164,16 @@ Cada cas parteix d'una fixture mínima, simula l'esdeveniment i comprova l'estat
 
 **Instal·lació i auditoria** (`instal-lacio.test.js`)
 
-- [ ] `instal_larSistema()` amb l'ID de mostra falla amb un missatge clar.
-- [ ] Falten fulls o capçaleres: error amb el nom del full i de la capçalera.
-- [ ] Instal·lació correcta: tres triggers (i s'eliminen els anteriors), full auxiliar ocult, validacions i formats condicionals aplicats.
+- [x] `instal_larSistema()` amb l'ID de mostra falla amb un missatge clar.
+- [x] Falten fulls o capçaleres: error amb el nom del full i de la capçalera.
+- [x] Instal·lació correcta: tres triggers (i s'eliminen els anteriors), full auxiliar ocult, validacions i formats condicionals aplicats.
 - [ ] `auditarSistema()` detecta cada tipus d'incoherència i no informa de res en un sistema coherent.
 
 ### 2.5 Proves de rendiment
 
 Pressupostos de crides a l'API per detectar regressions. Els valors s'han de fixar amb la mesura real de la v9 i ajustar-los a la baixa després de cada optimització.
 
-- [ ] Reconciliació sense res a corregir (11 grups × 100 files): ≤ 15 crides. En una prova preliminar es van mesurar unes 12 crides a la v9, enfront de diversos milers a la v8.
+- [x] Reconciliació sense res a corregir (11 grups × 100 files): 0 escriptures, ≤ 15 `getValues` i ≤ 213 crides en total. Mesura de la v9: 12 `getValues` (les «unes 12 crides» de la prova preliminar només comptaven les lectures de dades) i 213 crides, 127 de les quals són `Sheet.getName` (vegeu 3.3).
 - [ ] Reserva d'una oferta (Contacte + ID): pressupost a fixar.
 - [ ] Enganxar 100 files en un grup: pressupost a fixar.
 - [ ] Enganxar 100 files al mestre: pressupost a fixar; ha de créixer linealment, no quadràticament.
@@ -194,11 +199,12 @@ docker run --rm practiques-tests
 Alternativa sense construir imatge, des de l'arrel del projecte:
 
 ```sh
-docker run --rm -v "$PWD":/app -w /app node:22-alpine node --test tests/
+docker run --rm --network none -v "$PWD":/app:ro -w /app node:22-alpine node --test "tests/**/*.test.js"
 ```
 
-- [ ] Afegir `package.json` (sense dependències), `Dockerfile` i `.dockerignore` (`.git`, `*.md`, `.claude/`).
-- [ ] Documentar l'execució de les proves en una secció nova del README.
+- [x] Afegir `package.json` (sense dependències), `Dockerfile` i `.dockerignore` (`.git`, `*.md`, `.claude/`, `privat/`, `*.xlsx`).
+- [x] A Node 22, `node --test tests/` tracta la carpeta com un fitxer i falla: cal el patró `"tests/**/*.test.js"`, que Node expandeix sense necessitat de shell.
+- [x] Documentar l'execució de les proves en una secció nova del README.
 - [ ] (Opcional) GitHub Actions: un flux que executi `node --test` a cada push i a cada PR.
 
 ---
@@ -250,6 +256,9 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 - [ ] **`gestionarEdicioMestre`** llegeix la fila sencera en dues funcions diferents (`assignarIdAutomaticSiCal_` i `obtenirOfertaPerFilaMestre_`).
   - **Solució:** llegir-la una vegada i passar els valors.
 
+- [ ] **`obtenirColumnesMestre_`** i **`obtenirColumnesGrup_`** criden `sheet.getName()` una vegada per capçalera obligatòria (17 al mestre i 8 per grup), i `assegurarFilesGrup_` també el crida. En una reconciliació són 127 de les 213 crides.
+  - **Solució:** llegir el nom una sola vegada al començament de cada funció.
+
 ### 3.4 Neteja i coherència (sense impacte funcional)
 
 - [ ] `sincronitzarDadesOfertaActiva_`: variable no usada `lastRow`. Es pot llegir només la columna Origen fent servir `CFG.FIRST_DATA_ROW` en lloc del literal `2`.
@@ -267,7 +276,7 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 
 ## 4. Criteris d'acceptació
 
-- [ ] `node --test tests/` passa en verd dins del contenidor.
+- [ ] `node --test "tests/**/*.test.js"` passa en verd dins del contenidor.
 - [ ] Totes les proves de la secció 2.4 existeixen i passen contra la v9 **abans** de començar la fase 2.
 - [ ] Cada optimització de la secció 3 va en un commit propi i no trenca cap prova.
 - [ ] Els pressupostos de crides de la secció 2.5 es fixen i s'ajusten a la baixa a mesura que s'optimitza.

@@ -99,6 +99,25 @@ Abans de passar a producció, instal·la el sistema en còpies dels dos fitxers 
 - Eliminar físicament una fila
 - Intentar assignar la mateixa oferta des de dos grups alhora
 
+## Proves automatitzades
+
+La carpeta [`tests/`](tests/) conté proves d'integració que executen `script.gs` sense modificar-lo sobre dobles en memòria dels serveis d'Apps Script. No cal cap dependència externa, només Node.js 22 o posterior. Es poden executar en un contenidor, sense instal·lar res a la màquina:
+
+```sh
+docker run --rm --network none -v "$PWD":/app:ro -w /app node:22-alpine node --test "tests/**/*.test.js"
+```
+
+O bé construint la imatge:
+
+```sh
+docker build -t practiques-tests .
+docker run --rm practiques-tests
+```
+
+Amb Node instal·lat, n'hi ha prou amb `npm test`.
+
+Les proves no substitueixen la prova manual en còpies dels fitxers reals: no cobreixen els bloquejos reals, el temps dels triggers, els permisos ni la visualització dels desplegables.
+
 ## Documentació
 
 - [Guia d'instal·lació](Documentació-Instal·lació_script.md)
