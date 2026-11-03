@@ -161,11 +161,15 @@ const INCOHERENCIES = [
   ['Tipus del grup incoherent amb l\'estat del mestre',
     esc => esc.escriureFilaGrup('GA1A', 2, { tipus: 'Acord' }),
     'Oferta 1: al grup és Acord, però al mestre consta Contactada.'],
-  // Amb Tipus Contacte també diu «Contactada però sense Data contacte», que és
-  // enganyós perquè l'oferta és Pendent (TODO.md, secció 3.4).
-  ['referència a una oferta Pendent',
+  ['referència d\'un Acord a una oferta Pendent',
     esc => esc.escriureFilaGrup('GA2B', 9, { tipus: 'Acord', origen: 3 }),
     ['Oferta 3: al grup és Acord, però al mestre consta Pendent.',
+      'Oferta 3: Gestionada per = [buit], però l\'ús és a GA2B.']],
+  // Regressió: també deia «Contactada però sense Data contacte», tot i que
+  // l'oferta és Pendent.
+  ['referència d\'un Contacte a una oferta Pendent',
+    esc => esc.escriureFilaGrup('GA2B', 10, { tipus: 'Contacte', origen: 3 }),
+    ['Oferta 3: al grup és Contacte, però al mestre consta Pendent.',
       'Oferta 3: Gestionada per = [buit], però l\'ús és a GA2B.']],
   ['Gestionada per diferent del grup que la fa servir',
     esc => esc.escriureOferta(6, { gestionada: 'GA2B' }),
@@ -212,7 +216,13 @@ test('auditarSistema() informa de totes les incoherències alhora i n\'avisa de 
 
     const problemes = esc.executar('auditarSistema');
 
-    assert.deepEqual([...problemes].sort(), INCOHERENCIES.flatMap(([, , esperats]) => esperats).sort());
+    // Les dues referències a l'oferta 3 compten com un sol ús múltiple: el
+    // primer ús (l'Acord) és el que es compara amb el mestre.
+    const esperats = INCOHERENCIES
+      .filter(([nom]) => nom !== 'referència d\'un Contacte a una oferta Pendent')
+      .flatMap(([, , esperats]) => esperats);
+    esperats.push('Oferta 3: utilitzada 2 vegades (GA2B!fila 9, GA2B!fila 10).');
+    assert.deepEqual([...problemes].sort(), esperats.sort());
   });
 
   await t.test('més de 20', () => {

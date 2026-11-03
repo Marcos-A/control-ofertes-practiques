@@ -1721,7 +1721,9 @@ function auditarSistema() {
     if (offer.gestionada !== entry.group) {
       problems.push(`Oferta ${id}: Gestionada per = ${offer.gestionada || '[buit]'}, però l'ús és a ${entry.group}.`);
     }
-    if (expectedState === CFG.ESTATS.CONTACTADA && !(offer.dataContacte instanceof Date)) {
+    // Amb l'estat real: si l'oferta no és Contactada, ja s'ha informat de
+    // l'estat incoherent i la manca de data no és cap incidència.
+    if (offer.estat === CFG.ESTATS.CONTACTADA && !(offer.dataContacte instanceof Date)) {
       problems.push(`Oferta ${id}: Contactada però sense Data contacte.`);
     }
     // Data contacte es conserva intencionadament en Assignada com a registre
