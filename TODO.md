@@ -258,8 +258,9 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 - [ ] **`gestionarEdicioMestre`** llegeix la fila sencera en dues funcions diferents (`assignarIdAutomaticSiCal_` i `obtenirOfertaPerFilaMestre_`).
   - **Solució:** llegir-la una vegada i passar els valors.
 
-- [ ] **`obtenirColumnesMestre_`** i **`obtenirColumnesGrup_`** criden `sheet.getName()` una vegada per capçalera obligatòria (17 al mestre i 8 per grup), i `assegurarFilesGrup_` també el crida. En una reconciliació són 127 de les 213 crides.
+- [x] **`obtenirColumnesMestre_`** i **`obtenirColumnesGrup_`** criden `sheet.getName()` una vegada per capçalera obligatòria (17 al mestre i 8 per grup), i `assegurarFilesGrup_` també el crida. En una reconciliació són 127 de les 213 crides.
   - **Solució:** llegir el nom una sola vegada al començament de cada funció.
+  - Fet: el nom es llegeix una vegada i les columnes també es desen per objecte de full. Reconciliació: de 213 a 109 crides; reserva: de 252 a 147.
 
 ### 3.4 Neteja i coherència (sense impacte funcional)
 

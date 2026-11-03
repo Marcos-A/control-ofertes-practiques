@@ -44,8 +44,8 @@ test('reconciliació sense res a corregir (11 grups × 100 files)', () => {
   assert.equal(comptador.escriptures(), 0, detall(comptador));
   // TODO.md: ≤ 15 lectures de dades (1 del mestre i 1 per grup).
   assert.ok(comptador.perMetode['Range.getValues'] <= 15, detall(comptador));
-  // v9: 213 crides, 127 de les quals són Sheet.getName.
-  assert.ok(comptador.total <= 213, `${comptador.total} crides:\n${detall(comptador)}`);
+  // v9: 213 crides, 127 de les quals eren Sheet.getName. v10: 109.
+  assert.ok(comptador.total <= 109, `${comptador.total} crides:\n${detall(comptador)}`);
 });
 
 
@@ -126,14 +126,14 @@ test('reserva d\'una oferta (Contacte + ID) en un sistema carregat', () => {
   esc.editar(full, 2, 'Origen', String(PRIMERA_PENDENT));
 
   assert.equal(esc.oferta(PRIMERA_PENDENT).estat, 'Contactada');
-  // v10 en curs: 252 crides (119 Sheet.getName), 14 getValues, 18 escriptures.
-  comprovarPressupost(esc.comptador, { total: 252, getValues: 14, escriptures: 18, celes: 38327 });
+  // v9: 252 crides (119 Sheet.getName).
+  comprovarPressupost(esc.comptador, { total: 147, getValues: 14, escriptures: 18, celes: 38327 });
 });
 
 test('enganxar 100 files en un grup', () => {
   // v10 en curs: unes 24 crides i 11 escriptures per fila, sobretot les dades
   // de l'empresa i la validació d'Origen fila per fila (seccions 3.1 i 3.3).
-  comprovarPressupost(enganxarAlGrup(100), { total: 2647, getValues: 14, escriptures: 1106, celes: 45124 });
+  comprovarPressupost(enganxarAlGrup(100), { total: 2542, getValues: 14, escriptures: 1106, celes: 45124 });
 });
 
 test('enganxar 100 files al mestre: el cost creix linealment', () => {
@@ -144,7 +144,7 @@ test('enganxar 100 files al mestre: el cost creix linealment', () => {
   // d'IDs (unes 1.000 cel·les amb el mestre de 1.000 files): el cost és el
   // producte de les files enganxades per la mida del mestre (secció 3.2).
   const real = comprovarPressupost(enganxarAlMestre(100), {
-    total: 857, getValues: 201, escriptures: 108, celes: 118700
+    total: 841, getValues: 201, escriptures: 108, celes: 118700
   });
   assert.deepEqual(real, gran);
 
@@ -163,4 +163,15 @@ test('enganxar al grup: el cost creix linealment', () => {
   for (const clau of Object.keys(primer)) {
     assert.ok(segon[clau] <= primer[clau] * 1.05 + 1, `${clau} per fila: ${primer[clau]} → ${segon[clau]}`);
   }
+});
+
+test('editar una dada d\'una oferta activa al mestre', () => {
+  const esc = escenariCarregat();
+  esc.reiniciarRegistres();
+
+  esc.editar(esc.fullMestre, 2, 'Telèfon', '931234567');
+
+  assert.equal(esc.filaGrup('GA1A', 2).telefon, 931234567);
+  // v9: 64 crides.
+  comprovarPressupost(esc.comptador, { total: 40, getValues: 2, escriptures: 8, celes: 148 });
 });

@@ -155,8 +155,13 @@ let _cacheCompartit_ = null;
 let _cacheFullMestre_ = null;
 let _cacheColumnesMestre_ = null;
 const _cacheFullsGrup_ = new Map();
+// Per nom i per objecte: Apps Script pot retornar objectes diferents per al
+// mateix full (getSheetByName, e.range.getSheet()); amb l'objecte ja vist no
+// cal ni tornar a llegir-ne el nom.
 const _cacheColumnesGrup_ = new Map();
+const _cacheColumnesPerFull_ = new Map();
 const _cacheFilesGrupAssegurades_ = new Set();
+const _cacheFullsGrupAssegurats_ = new Set();
 
 function obtenirMapaOfertesMestre_() {
   if (_cacheOfertesMestre_) return _cacheOfertesMestre_;
@@ -1981,7 +1986,9 @@ function validarCapcaleresExactes_(sheet, expected) {
 
 
 function assegurarFilesGrup_(sheet) {
+  if (_cacheFullsGrupAssegurats_.has(sheet)) return;
   const name = sheet.getName();
+  _cacheFullsGrupAssegurats_.add(sheet);
   if (_cacheFilesGrupAssegurades_.has(name)) return;
 
   const required = CFG.MAX_ACORDS_PER_GRUP + 1;
@@ -1999,48 +2006,53 @@ function obtenirColumnesMestre_(sheet) {
 
   const h = mapaCapcaleres_(sheet);
   const M = CFG.MASTER_HEADERS;
+  const name = sheet.getName();
 
   _cacheColumnesMestre_ = {
-    id: columnaObligatoria_(h, M.ID, sheet.getName()),
-    estat: columnaObligatoria_(h, M.ESTAT, sheet.getName()),
-    gestionada: columnaObligatoria_(h, M.GESTIONADA, sheet.getName()),
-    dataContacte: columnaObligatoria_(h, M.DATA_CONTACTE, sheet.getName()),
-    diesContacte: columnaObligatoria_(h, M.DIES_CONTACTE, sheet.getName()),
-    empresa: columnaObligatoria_(h, M.EMPRESA, sheet.getName()),
-    personaContacte: columnaObligatoria_(h, M.PERSONA_CONTACTE, sheet.getName()),
-    correu: columnaObligatoria_(h, M.CORREU, sheet.getName()),
-    telefon: columnaObligatoria_(h, M.TELEFON, sheet.getName()),
-    adreca: columnaObligatoria_(h, M.ADRECA, sheet.getName()),
-    cicle: columnaObligatoria_(h, M.CICLE, sheet.getName()),
-    tasques: columnaObligatoria_(h, M.TASQUES, sheet.getName()),
-    torn: columnaObligatoria_(h, M.TORN, sheet.getName()),
-    localitat: columnaObligatoria_(h, M.LOCALITAT, sheet.getName()),
-    dataIncorporacio: columnaObligatoria_(h, M.DATA_INCORPORACIO, sheet.getName()),
-    modalitat: columnaObligatoria_(h, M.MODALITAT, sheet.getName()),
-    comentaris: columnaObligatoria_(h, M.COMENTARIS, sheet.getName())
+    id: columnaObligatoria_(h, M.ID, name),
+    estat: columnaObligatoria_(h, M.ESTAT, name),
+    gestionada: columnaObligatoria_(h, M.GESTIONADA, name),
+    dataContacte: columnaObligatoria_(h, M.DATA_CONTACTE, name),
+    diesContacte: columnaObligatoria_(h, M.DIES_CONTACTE, name),
+    empresa: columnaObligatoria_(h, M.EMPRESA, name),
+    personaContacte: columnaObligatoria_(h, M.PERSONA_CONTACTE, name),
+    correu: columnaObligatoria_(h, M.CORREU, name),
+    telefon: columnaObligatoria_(h, M.TELEFON, name),
+    adreca: columnaObligatoria_(h, M.ADRECA, name),
+    cicle: columnaObligatoria_(h, M.CICLE, name),
+    tasques: columnaObligatoria_(h, M.TASQUES, name),
+    torn: columnaObligatoria_(h, M.TORN, name),
+    localitat: columnaObligatoria_(h, M.LOCALITAT, name),
+    dataIncorporacio: columnaObligatoria_(h, M.DATA_INCORPORACIO, name),
+    modalitat: columnaObligatoria_(h, M.MODALITAT, name),
+    comentaris: columnaObligatoria_(h, M.COMENTARIS, name)
   };
   return _cacheColumnesMestre_;
 }
 
 
 function obtenirColumnesGrup_(sheet) {
+  if (_cacheColumnesPerFull_.has(sheet)) return _cacheColumnesPerFull_.get(sheet);
+
   const name = sheet.getName();
-  if (_cacheColumnesGrup_.has(name)) return _cacheColumnesGrup_.get(name);
+  let cols = _cacheColumnesGrup_.get(name);
+  if (!cols) {
+    const h = mapaCapcaleres_(sheet);
+    const G = CFG.GROUP_HEADERS;
 
-  const h = mapaCapcaleres_(sheet);
-  const G = CFG.GROUP_HEADERS;
-
-  const cols = {
-    tipus: columnaObligatoria_(h, G.TIPUS, sheet.getName()),
-    origen: columnaObligatoria_(h, G.ORIGEN, sheet.getName()),
-    personaContacte: columnaObligatoria_(h, G.PERSONA_CONTACTE, sheet.getName()),
-    correu: columnaObligatoria_(h, G.CORREU, sheet.getName()),
-    telefon: columnaObligatoria_(h, G.TELEFON, sheet.getName()),
-    adreca: columnaObligatoria_(h, G.ADRECA, sheet.getName()),
-    localitat: columnaObligatoria_(h, G.LOCALITAT, sheet.getName()),
-    nomEmpresa: columnaObligatoria_(h, G.NOM_EMPRESA, sheet.getName())
-  };
-  _cacheColumnesGrup_.set(name, cols);
+    cols = {
+      tipus: columnaObligatoria_(h, G.TIPUS, name),
+      origen: columnaObligatoria_(h, G.ORIGEN, name),
+      personaContacte: columnaObligatoria_(h, G.PERSONA_CONTACTE, name),
+      correu: columnaObligatoria_(h, G.CORREU, name),
+      telefon: columnaObligatoria_(h, G.TELEFON, name),
+      adreca: columnaObligatoria_(h, G.ADRECA, name),
+      localitat: columnaObligatoria_(h, G.LOCALITAT, name),
+      nomEmpresa: columnaObligatoria_(h, G.NOM_EMPRESA, name)
+    };
+    _cacheColumnesGrup_.set(name, cols);
+  }
+  _cacheColumnesPerFull_.set(sheet, cols);
   return cols;
 }
 
