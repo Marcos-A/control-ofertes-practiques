@@ -127,6 +127,28 @@ test('les dades de text es publiquen tal com són al mestre', () => {
   assert.equal(esc.fullOfertes.getRange(2, 3).getFormula(), '');
 });
 
+test('una republicació sense canvis no escriu res i retorna els IDs Pendent', () => {
+  const esc = escenariVariat();
+  const publicades = esc.ofertesPublicades();
+  esc.reiniciarRegistres();
+
+  const pendents = esc.executar('actualitzarPublicacio');
+
+  assert.deepEqual([...pendents], [1, 3, 7]);
+  assert.equal(esc.comptador.escriptures(), 0, JSON.stringify(esc.comptador.perMetode));
+  assert.deepEqual(esc.ofertesPublicades(), publicades);
+});
+
+test('una capçalera d\'Ofertes modificada es restaura', () => {
+  const esc = escenariVariat();
+  esc.fullOfertes._establir(1, 3, 'Capçalera canviada');
+
+  esc.executar('actualitzarPublicacio');
+
+  assert.deepEqual(esc.fullOfertes._fila(1, CAPCALERES_OFERTES.length), CAPCALERES_OFERTES);
+  assert.deepEqual(idsPublicats(esc), [1, 3, 7]);
+});
+
 test('el full Ofertes creix si hi ha més ofertes Pendent que files', () => {
   const esc = new Escenari({ ofertes: ofertesPendents(1100) });
 

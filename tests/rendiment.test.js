@@ -128,13 +128,13 @@ test('reserva d\'una oferta (Contacte + ID) en un sistema carregat', () => {
   assert.equal(esc.oferta(PRIMERA_PENDENT).estat, 'Contactada');
   // v9: 252 crides (119 Sheet.getName). La validació d'Origen fa una lectura
   // en bloc (getValues) en lloc de dues de cel·la (getValue).
-  comprovarPressupost(esc.comptador, { total: 135, getValues: 15, escriptures: 11, celes: 38328 });
+  comprovarPressupost(esc.comptador, { total: 133, getValues: 16, escriptures: 9, celes: 38340 });
 });
 
 test('enganxar 100 files en un grup', () => {
   // v9: 2.647 crides i 1.106 escriptures. Ara unes 9 crides i 3 escriptures
   // per fila: les dades de l'empresa i l'estat al mestre de cada oferta.
-  comprovarPressupost(enganxarAlGrup(100), { total: 946, getValues: 15, escriptures: 307, celes: 45224 });
+  comprovarPressupost(enganxarAlGrup(100), { total: 944, getValues: 16, escriptures: 305, celes: 45236 });
 });
 
 test('enganxar 100 files al mestre: el cost creix linealment', () => {
@@ -146,7 +146,7 @@ test('enganxar 100 files al mestre: el cost creix linealment', () => {
   // d'IDs es llegeixen una vegada: el nombre de crides no depèn de la mida de
   // l'enganxat i només es llegeixen unes 18 cel·les més per fila.
   const real = comprovarPressupost(enganxarAlMestre(100), {
-    total: 45, getValues: 3, escriptures: 7, celes: 19799
+    total: 38, getValues: 5, escriptures: 1, celes: 21809
   });
   assert.deepEqual(real, gran);
 

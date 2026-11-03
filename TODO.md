@@ -259,11 +259,12 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
   - Prerequisit: comprovar amb proves que la fórmula ja és a totes les files des de la instal·lació.
   - Fet d'una altra manera: el mestre no té trigger onChange i una fila inserida a mà no té la fórmula, de manera que treure-la de les edicions normals deixaria files sense fórmula. Ara llegeix la fórmula i només l'escriu si falta o és diferent (una lectura en lloc de dues escriptures). La prova d'instal·lació comprova totes les files. Escriptures: reserva de 13 a 11, enganxar 100 files en un grup de 606 a 406, edició al mestre de 3 a 1.
   - A la prova manual: comprovar que `getFormulaR1C1()` retorna exactament la fórmula escrita (si Sheets la normalitza, es continuaria reescrivint com abans, sense cap error).
-- [ ] **`actualitzarPublicacioIAuxiliarSenseLock_`** esborra i reescriu tot el full `Ofertes` i les 2.000 files de l'auxiliar a cada crida.
+- [x] **`actualitzarPublicacioIAuxiliarSenseLock_`** esborra i reescriu tot el full `Ofertes` i les 2.000 files de l'auxiliar a cada crida.
   - **Solució:**
     - llegir el contingut publicat actual i no escriure res si és idèntic;
     - esborrar només les files sobrants;
     - fer que retorni la llista d'IDs Pendent, perquè les validacions no hagin de tornar a llegir el mestre (`obtenirPendentsIds_`).
+  - Fet: `sincronitzarBloc_` llegeix el que hi ha publicat, només escriu si és diferent i només esborra les files sobrants amb contingut. Les dues columnes de l'auxiliar són un sol bloc. La funció retorna els IDs Pendent i les validacions d'Origen els reutilitzen. Una republicació sense canvis no escriu res; escriptures: reserva de 11 a 9, enganxar 100 files al mestre de 7 a 1.
 - [x] **`gestionarEdicioMestre`** llegeix la fila sencera en dues funcions diferents (`assignarIdAutomaticSiCal_` i `obtenirOfertaPerFilaMestre_`).
   - **Solució:** llegir-la una vegada i passar els valors.
   - Fet: la fila es llegeix una vegada i es passa a `assignarIdAutomaticSiCal_` i `gestionarCanviEstatMestre_`; `obtenirOfertaPerFilaMestre_` ja no cal. Edició al mestre: de 30 a 26 crides.

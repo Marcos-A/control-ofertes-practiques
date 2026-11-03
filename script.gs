@@ -302,8 +302,7 @@ function instal_larSistema() {
   } finally {
     lock.releaseLock();
   }
-  actualitzarPublicacioIAuxiliarSenseLock_();
-  refrescarTotesValidacionsOrigen_();
+  refrescarTotesValidacionsOrigen_(actualitzarPublicacioIAuxiliarSenseLock_());
 
   instal_larTriggers_(shared, master);
 
@@ -513,9 +512,8 @@ function gestionarCanviEstructuralCompartit(e) {
     } finally {
       lock.releaseLock();
     }
-    actualitzarPublicacioIAuxiliarSenseLock_();
     // Canvi estructural excepcional: aquí sí convé reconstruir totes les validacions.
-    refrescarTotesValidacionsOrigen_();
+    refrescarTotesValidacionsOrigen_(actualitzarPublicacioIAuxiliarSenseLock_());
   } catch (error) {
     avisar_('No s\'ha pogut reconciliar el sistema després del canvi de files: ' + error.message);
   }
@@ -618,8 +616,8 @@ function gestionarCanviTipus_(e, cols) {
   if (calNetejar) netejarDadesOfertaFila_(sheet, row, cols);
   else if (forcarNetejaOferta) netejarDadesOfertaFila_(sheet, row, cols);
   if (calPoblar) poblarDadesOfertaFila_(sheet, row, cols, calPoblar);
-  if (calSincronitzarVistes) actualitzarPublicacioIAuxiliarSenseLock_();
-  aplicarValidacioOrigenFila_(sheet, row, cols);
+  const pendingIds = calSincronitzarVistes ? actualitzarPublicacioIAuxiliarSenseLock_() : null;
+  aplicarValidacioOrigenFila_(sheet, row, cols, pendingIds);
 }
 
 
@@ -716,8 +714,8 @@ function gestionarCanviOrigen_(e, cols) {
   // Fora del lock: dades visibles, publicació, auxiliar i validació local.
   if (calNetejar) netejarDadesOfertaFila_(sheet, row, cols);
   if (calPoblar) poblarDadesOfertaFila_(sheet, row, cols, calPoblar);
-  if (calSincronitzarVistes) actualitzarPublicacioIAuxiliarSenseLock_();
-  aplicarValidacioOrigenFila_(sheet, row, cols);
+  const pendingIds = calSincronitzarVistes ? actualitzarPublicacioIAuxiliarSenseLock_() : null;
+  aplicarValidacioOrigenFila_(sheet, row, cols, pendingIds);
 }
 
 
@@ -753,8 +751,10 @@ function gestionarEdicioMultipleGrup_(e, cols) {
   }
 
   // Fora del bloqueig global: només actualitzem la projecció i les files tocades.
-  actualitzarPublicacioIAuxiliarSenseLock_();
-  refrescarValidacionsFilesGrup_(range.getSheet(), range.getRow(), range.getLastRow(), cols);
+  const pendingIds = actualitzarPublicacioIAuxiliarSenseLock_();
+  refrescarValidacionsFilesGrup_(
+    range.getSheet(), range.getRow(), range.getLastRow(), cols, crearContextReglesOrigen_(pendingIds)
+  );
 }
 
 
@@ -1119,7 +1119,7 @@ function actualitzarPublicacio() {
   validarConfiguracio_();
   // És una projecció derivada del mestre: no cal bloquejar la transacció global.
   // La integritat es garanteix en les funcions de reserva/alliberament.
-  actualitzarPublicacioIAuxiliarSenseLock_();
+  return actualitzarPublicacioIAuxiliarSenseLock_();
 }
 
 
@@ -1177,46 +1177,55 @@ function actualitzarPublicacioIAuxiliarSenseLock_() {
   }
 
   // Publicació: només ofertes Pendent i sense dades de contacte.
-  const requiredPublicRows = Math.max(pending.length + 1, 2);
-  if (publicSheet.getMaxRows() < requiredPublicRows) {
-    publicSheet.insertRowsAfter(
-      publicSheet.getMaxRows(),
-      requiredPublicRows - publicSheet.getMaxRows()
-    );
+  const publicRows = [
+    [...CFG.PUBLIC_HEADERS],
+    ...pending.map(o => [
+      o.id, o.cicle, o.tasques, o.torn, o.localitat, o.dataIncorporacio, o.modalitat, o.comentaris
+    ])
+  ];
+  sincronitzarBloc_(publicSheet, 1, 1, publicRows, CFG.PUBLIC_HEADERS.length, true);
+
+  // Auxiliar A = Acord (propi + pendents), B = Contacte (només pendents), com
+  // un sol bloc de dues columnes. crearFullAuxiliar_ ja li dona prou files i el
+  // límit s'ha comprovat abans.
+  const acord = [CFG.ORIGEN.PROPI, ...pending.map(o => o.id)];
+  const auxRows = acord.map((value, i) => [value, i < pending.length ? pending[i].id : '']);
+  sincronitzarBloc_(aux, 2, 1, auxRows, 2, false);
+
+  // Les validacions d'Origen la poden reutilitzar sense tornar a llegir el mestre.
+  return pending.map(o => o.id);
+}
+
+
+/*
+ * Deixa a partir de (firstRow, firstCol) exactament les files indicades, de
+ * width columnes, i buides les de sota que tenien contingut. Llegeix el que hi
+ * ha i només escriu si és diferent: una republicació sense canvis no escriu
+ * res i no esborra i reescriu tot el full a cada crida.
+ */
+function sincronitzarBloc_(sheet, firstRow, firstCol, rows, width, assegurarFiles) {
+  if (assegurarFiles && sheet.getMaxRows() < firstRow + rows.length - 1) {
+    sheet.insertRowsAfter(sheet.getMaxRows(), firstRow + rows.length - 1 - sheet.getMaxRows());
   }
 
-  publicSheet.getRange(1, 1, 1, CFG.PUBLIC_HEADERS.length)
-    .setValues([CFG.PUBLIC_HEADERS]);
+  const lastRow = sheet.getLastRow();
+  const currentRows = Math.max(lastRow - firstRow + 1, 0);
+  const readRows = Math.max(currentRows, rows.length);
+  const current = readRows > 0
+    ? sheet.getRange(firstRow, firstCol, readRows, width).getValues()
+    : [];
 
-  const rowsToClear = publicSheet.getMaxRows() - 1;
-  publicSheet.getRange(2, 1, rowsToClear, CFG.PUBLIC_HEADERS.length).clearContent();
-
-  if (pending.length > 0) {
-    publicSheet.getRange(2, 1, pending.length, CFG.PUBLIC_HEADERS.length)
-      .setValues(pending.map(o => [
-        o.id,
-        comText_(o.cicle),
-        comText_(o.tasques),
-        comText_(o.torn),
-        comText_(o.localitat),
-        comText_(o.dataIncorporacio),
-        comText_(o.modalitat),
-        comText_(o.comentaris)
-      ]));
+  const iguals = rows.every((row, i) => row.every((value, j) => valorsIguals_(current[i][j], value)));
+  if (!iguals) {
+    sheet.getRange(firstRow, firstCol, rows.length, width)
+      .setValues(rows.map(row => row.map(comText_)));
   }
 
-  // Auxiliar A = Acord (propi + pendents), B = Contacte (només pendents).
-  const maxRows = CFG.MAX_ORIGENS_AUXILIAR;
-  aux.getRange(2, 1, maxRows, 2).clearContent();
-
-  const acordValues = [[CFG.ORIGEN.PROPI], ...pending.map(o => [o.id])];
-  const contacteValues = pending.map(o => [o.id]);
-
-  if (acordValues.length > 0) {
-    aux.getRange(2, 1, acordValues.length, 1).setValues(acordValues);
-  }
-  if (contacteValues.length > 0) {
-    aux.getRange(2, 2, contacteValues.length, 1).setValues(contacteValues);
+  const sobrants = current
+    .slice(rows.length)
+    .some(row => row.some(value => !esBuit_(value)));
+  if (sobrants) {
+    sheet.getRange(firstRow + rows.length, firstCol, current.length - rows.length, width).clearContent();
   }
 }
 
@@ -1352,8 +1361,8 @@ function refrescarValidacionsFilesGrup_(sheet, firstRow, lastRow, cols, contextO
 }
 
 
-function refrescarTotesValidacionsOrigen_() {
-  const context = crearContextReglesOrigen_();
+function refrescarTotesValidacionsOrigen_(pendingIdsOpt) {
+  const context = crearContextReglesOrigen_(pendingIdsOpt);
 
   CFG.GRUPS.forEach(group => {
     const sheet = obtenirFullGrup_(group);
@@ -1806,8 +1815,7 @@ function reconciliarSistemaManualment() {
     lock.releaseLock();
   }
 
-  actualitzarPublicacioIAuxiliarSenseLock_();
-  refrescarTotesValidacionsOrigen_();
+  refrescarTotesValidacionsOrigen_(actualitzarPublicacioIAuxiliarSenseLock_());
   avisar_('Reconciliació completada.');
 }
 
