@@ -227,19 +227,24 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 
 ### 3.2 Edicions múltiples al mestre
 
-- [ ] **`gestionarEdicioMultipleMestre_` → `assignarIdAutomaticSiCal_`** s'executa per cada fila del rang i cada vegada rellegeix tota la columna d'IDs: el cost creix quadràticament.
+- [x] **`gestionarEdicioMultipleMestre_` → `assignarIdAutomaticSiCal_`** s'executa per cada fila del rang i cada vegada rellegeix tota la columna d'IDs: el cost creix quadràticament.
   - **Solució:**
     - llegir el bloc del rang editat i la columna d'IDs una sola vegada;
     - calcular el màxim una vegada;
     - assignar IDs consecutius a les files amb contingut i sense ID;
     - escriure la columna d'IDs del rang amb un sol `setValues`.
-- [ ] **`configurarFormulesDiesContacte_(e.source)`** reescriu la fórmula de tota la columna (`getMaxRows`) a cada edició múltiple.
+  - Fet: `assignarIdsAutomatics_` llegeix la columna d'IDs una vegada i escriu cada tram de files consecutives amb un sol `setValues`; l'edició d'una cel·la també l'usa i `assignarIdAutomaticSiCal_` s'elimina. Enganxar 100 files al mestre: de 746 a 45 crides, de 108 a 7 escriptures i de 120.300 a 19.799 cel·les.
+- [x] **`configurarFormulesDiesContacte_(e.source)`** reescriu la fórmula de tota la columna (`getMaxRows`) a cada edició múltiple.
   - **Solució:** aplicar-la només al rang de files editat, i només si el rang toca columnes del sistema.
-- [ ] Bloc `touchesEstat`:
+  - Fet: `configurarFormulesDiesFiles_` comprova la fórmula de les files editades amb una lectura i només l'escriu si alguna és diferent (cobreix també les files noves d'un enganxat al final del full).
+- [x] Bloc `touchesEstat`:
   - les tres lectures (Estat, ID, Gestionada per) es poden fer amb una sola;
   - les reversions, amb `RangeList` per a les neteges.
-- [ ] Eliminar la variable no usada `touchesSystemColumns`. També es pot fer servir per evitar la reescriptura de fórmules quan el rang no toca columnes del sistema.
-- [ ] `corregirDuplicatsIntroduitsPerEdicioMultipleMestre_` fa `return;` (retorna `undefined`) quan el full no té dades. Ha de retornar `false`, igual que les altres sortides.
+  - Fet: `revertirEstatsActiusIncoherents_` treballa sobre la lectura única del bloc editat i esborra Gestionada per i Data contacte amb un sol `RangeList`.
+- [x] Eliminar la variable no usada `touchesSystemColumns`. També es pot fer servir per evitar la reescriptura de fórmules quan el rang no toca columnes del sistema.
+  - Fet: eliminada; la comprovació de la fórmula ja evita la reescriptura.
+- [x] `corregirDuplicatsIntroduitsPerEdicioMultipleMestre_` fa `return;` (retorna `undefined`) quan el full no té dades. Ha de retornar `false`, igual que les altres sortides.
+  - Fet.
 
 ### 3.3 Sobrecost per edició
 

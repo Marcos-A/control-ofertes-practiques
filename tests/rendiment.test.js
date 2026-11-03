@@ -141,11 +141,12 @@ test('enganxar 100 files al mestre: el cost creix linealment', () => {
   const mides = [25, 50, 100];
   const [petit, mitja, gran] = mides.map(files => mesura(enganxarAlMestre(files)));
 
-  // v10 en curs: 8 crides per fila, però cada fila rellegeix tota la columna
-  // d'IDs (unes 1.000 cel·les amb el mestre de 1.000 files): el cost és el
-  // producte de les files enganxades per la mida del mestre (secció 3.2).
+  // v9: 857 crides, 201 getValues, 108 escriptures i 118.700 cel·les, perquè
+  // cada fila rellegia tota la columna d'IDs. Ara el bloc editat i la columna
+  // d'IDs es llegeixen una vegada: el nombre de crides no depèn de la mida de
+  // l'enganxat i només es llegeixen unes 18 cel·les més per fila.
   const real = comprovarPressupost(enganxarAlMestre(100), {
-    total: 746, getValues: 202, escriptures: 108, celes: 120300
+    total: 45, getValues: 3, escriptures: 7, celes: 19799
   });
   assert.deepEqual(real, gran);
 

@@ -362,3 +362,16 @@ test('enganxar dades d\'ofertes actives al mestre les propaga a les files dels g
   assert.equal(g1.nomEmpresa, ofertaDeMostra(1).empresa);
   assert.deepEqual(esc.avisos(), []);
 });
+
+test('un enganxat sobre files amb i sense la fórmula de Dies en contacte la reposa on falta', () => {
+  const esc = nouEscenari();
+  const formula = formulaDies(esc, filaDeId(1));
+  esc.comptador.senseComptar(() => esc.fullMestre.insertRowsAfter(filaDeId(2), 1));
+  const filaNova = filaDeId(2) + 1;
+
+  esc.enganxar(esc.fullMestre, filaDeId(2), 'Tasques', [['Tasques 2 noves'], ['Tasques fila nova']]);
+
+  assert.equal(formulaDies(esc, filaDeId(2)), formula);
+  assert.equal(formulaDies(esc, filaNova), formula);
+  assert.equal(esc.filaMestre(filaNova).id, 6);
+});

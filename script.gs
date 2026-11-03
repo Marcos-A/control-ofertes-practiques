@@ -428,37 +428,6 @@ function gestionarEdicioCompartit(e) {
 }
 
 
-/*
- * rowValues (opcional): valors de la fila ja llegits. Si s'assigna un ID,
- * s'hi actualitza perquè qui l'ha passat no hagi de tornar a llegir la fila.
- */
-function assignarIdAutomaticSiCal_(sheet, row, cols, rowValuesOpt) {
-  const lastCol = Math.max(...Object.values(cols));
-  const rowValues = rowValuesOpt || sheet.getRange(row, 1, 1, lastCol).getValues()[0];
-  if (normalitzarId_(rowValues[cols.id - 1]) !== null) return;
-
-  // Comprovem que la fila no sigui completament buida (excepte ID).
-  const teContingut = rowValues.some(function(v, idx) {
-    return idx !== cols.id - 1 && v !== '' && v !== null && v !== undefined;
-  });
-  if (!teContingut) return;
-
-  // Cerquem l'ID màxim existent.
-  const lastRow = sheet.getLastRow();
-  let maxId = 0;
-  if (lastRow >= CFG.FIRST_DATA_ROW) {
-    const ids = sheet.getRange(CFG.FIRST_DATA_ROW, cols.id, lastRow - CFG.FIRST_DATA_ROW + 1, 1).getValues();
-    for (let i = 0; i < ids.length; i++) {
-      const id = normalitzarId_(ids[i][0]);
-      if (id !== null && id > maxId) maxId = id;
-    }
-  }
-
-  sheet.getRange(row, cols.id).setValue(maxId + 1);
-  rowValues[cols.id - 1] = maxId + 1;
-}
-
-
 function gestionarEdicioMestre(e) {
   if (!e || !e.range) return;
 
@@ -496,7 +465,7 @@ function gestionarEdicioMestre(e) {
     const rowValues = sheet.getRange(row, 1, 1, Math.max(...Object.values(cols))).getValues()[0];
 
     // Auto-assignar ID si la fila no en té.
-    assignarIdAutomaticSiCal_(sheet, row, cols, rowValues);
+    assignarIdsAutomatics_(sheet, row, [rowValues], cols);
 
     if (col === cols.estat) {
       gestionarCanviEstatMestre_(e, cols, rowValues);
@@ -958,17 +927,15 @@ function gestionarCanviEstatMestre_(e, cols, rowValues) {
 
 function gestionarEdicioMultipleMestre_(e, cols) {
   const range = e.range;
+  const sheet = range.getSheet();
+  const firstRow = range.getRow();
+  const numRows = range.getNumRows();
   const firstCol = range.getColumn();
   const lastCol = range.getLastColumn();
-
-  const touchesId = cols.id >= firstCol && cols.id <= lastCol;
-  const touchesEstat = cols.estat >= firstCol && cols.estat <= lastCol;
-  const touchesSystemColumns = [
-    cols.id, cols.estat, cols.gestionada, cols.dataContacte, cols.diesContacte
-  ].some(col => col >= firstCol && col <= lastCol);
+  const toca = col => col >= firstCol && col <= lastCol;
 
   let hiHaviaDuplicats = false;
-  if (touchesId) {
+  if (toca(cols.id)) {
     // En enganxats/edicions de diverses cel·les, onEdit no proporciona oldValue
     // per cada cel·la. Corregim els duplicats de manera conservadora:
     // qualsevol coincidència que ja existia fora del rang editat és l'original
@@ -976,66 +943,13 @@ function gestionarEdicioMultipleMestre_(e, cols) {
     hiHaviaDuplicats = corregirDuplicatsIntroduitsPerEdicioMultipleMestre_(e, cols);
   }
 
-  // Bug 2 fix: si l'enganxat inclou la columna Estat, comprovem que
-  // cap fila dins del rang hagi quedat amb Contactada/Assignada sense
-  // un ús real al fitxer compartit. Sense aquesta guarda, un Ctrl-V
-  // podria crear estats actius orfes que no es detectarien fins a la
-  // reconciliació.
-  if (touchesEstat) {
-    const sheet = e.range.getSheet();
-    const firstRow = range.getRow();
-    const lastRow = range.getLastRow();
-    const numRows = lastRow - firstRow + 1;
+  // Una sola lectura de les files editades (ja sense els duplicats). Les
+  // funcions següents hi reflecteixen el que escriuen.
+  const values = sheet
+    .getRange(firstRow, 1, numRows, Math.max(...Object.values(cols)))
+    .getValues();
 
-    const estats = sheet
-      .getRange(firstRow, cols.estat, numRows, 1)
-      .getValues();
-    const ids = sheet
-      .getRange(firstRow, cols.id, numRows, 1)
-      .getValues();
-
-    const uses = construirMapaUsosOfertes_();
-    const gestionades = sheet
-      .getRange(firstRow, cols.gestionada, numRows, 1)
-      .getValues();
-    let reverted = 0;
-
-    for (let i = 0; i < numRows; i++) {
-      const estatVal = normalitzarText_(estats[i][0]);
-      if (![CFG.ESTATS.CONTACTADA, CFG.ESTATS.ASSIGNADA].includes(estatVal)) continue;
-
-      const id = normalitzarId_(ids[i][0]);
-      const gestionadaPer = normalitzarText_(gestionades[i][0]);
-      const row = firstRow + i;
-      const useList = id !== null ? (uses.get(id) || []) : [];
-
-      // Comprovem tres condicions de coherència:
-      // 1. Existeix algun ús real de l'ID al compartit.
-      // 2. El tipus del registre al grup és coherent amb l'estat del mestre
-      //    (Contacte → Contactada, Acord → Assignada).
-      // 3. Gestionada per coincideix amb el grup que té l'ús.
-      const expectedType = estatVal === CFG.ESTATS.CONTACTADA
-        ? CFG.TIPUS.CONTACTE
-        : CFG.TIPUS.ACORD;
-
-      const coherentUse = useList.find(
-        u => u.type === expectedType && u.group === gestionadaPer
-      );
-
-      if (!coherentUse) {
-        // L'estat actiu no és coherent amb cap ús real → revertim a Pendent.
-        sheet.getRange(row, cols.estat).setValue(CFG.ESTATS.PENDENT);
-        sheet.getRange(row, cols.gestionada).clearContent();
-        sheet.getRange(row, cols.dataContacte).clearContent();
-        configurarFormulaDiesFila_(sheet, row, cols);
-        reverted++;
-      }
-    }
-
-    if (reverted > 0) {
-      invalidarCacheOfertesMestre_();
-    }
-  }
+  if (toca(cols.estat)) revertirEstatsActiusIncoherents_(sheet, firstRow, values, cols);
 
   if (hiHaviaDuplicats) {
     avisarEn_(e.source,
@@ -1044,30 +958,92 @@ function gestionarEdicioMultipleMestre_(e, cols) {
   }
 
   // Auto-assignar IDs a files noves dins del rang editat.
-  if (!touchesId) {
-    const sheet = e.range.getSheet();
-    const firstRow = range.getRow();
-    const lastRow2 = range.getLastRow();
-    for (let r = firstRow; r <= lastRow2; r++) {
-      assignarIdAutomaticSiCal_(sheet, r, cols);
-    }
-  }
+  if (!toca(cols.id)) assignarIdsAutomatics_(sheet, firstRow, values, cols);
 
   // Les dades de l'empresa d'una oferta activa també són a la fila del grup.
-  const dataCols = Object.values(CAMPS_DADES_GRUP_).map(camp => cols[camp]);
-  if (dataCols.some(col => col >= firstCol && col <= lastCol)) {
-    const sheet = e.range.getSheet();
-    const firstRow = range.getRow();
-    const values = sheet
-      .getRange(firstRow, 1, range.getNumRows(), Math.max(...Object.values(cols)))
-      .getValues();
+  if (Object.values(CAMPS_DADES_GRUP_).some(camp => toca(cols[camp]))) {
     sincronitzarDadesOfertesActives_(
       values.map((row, i) => construirOfertaDesDeFila_(row, firstRow + i, cols))
     );
   }
 
-  configurarFormulesDiesContacte_(e.source);
+  configurarFormulesDiesFiles_(sheet, firstRow, numRows, cols);
   actualitzarPublicacio();
+}
+
+
+/*
+ * Si l'enganxat inclou la columna Estat, cap fila del rang no pot quedar amb
+ * Contactada/Assignada sense un ús real al fitxer compartit: un Ctrl-V podria
+ * crear estats actius orfes que no es detectarien fins a la reconciliació.
+ * Una fila és coherent si algun ús té el Tipus que correspon a l'estat
+ * (Contacte → Contactada, Acord → Assignada) i és del grup de Gestionada per.
+ */
+function revertirEstatsActiusIncoherents_(sheet, firstRow, values, cols) {
+  const uses = construirMapaUsosOfertes_();
+  const neteges = [];
+
+  values.forEach((rowValues, i) => {
+    const estat = normalitzarText_(rowValues[cols.estat - 1]);
+    if (![CFG.ESTATS.CONTACTADA, CFG.ESTATS.ASSIGNADA].includes(estat)) return;
+
+    const id = normalitzarId_(rowValues[cols.id - 1]);
+    const gestionadaPer = normalitzarText_(rowValues[cols.gestionada - 1]);
+    const expectedType = estat === CFG.ESTATS.CONTACTADA ? CFG.TIPUS.CONTACTE : CFG.TIPUS.ACORD;
+    const useList = id !== null ? (uses.get(id) || []) : [];
+    if (useList.some(u => u.type === expectedType && u.group === gestionadaPer)) return;
+
+    const row = firstRow + i;
+    sheet.getRange(row, cols.estat).setValue(CFG.ESTATS.PENDENT);
+    neteges.push(columnToLetter_(cols.gestionada) + row, columnToLetter_(cols.dataContacte) + row);
+    rowValues[cols.estat - 1] = CFG.ESTATS.PENDENT;
+    rowValues[cols.gestionada - 1] = '';
+    rowValues[cols.dataContacte - 1] = '';
+  });
+
+  if (neteges.length > 0) {
+    sheet.getRangeList(neteges).clearContent();
+    invalidarCacheOfertesMestre_();
+  }
+}
+
+
+/*
+ * Assigna max(ID) + 1, + 2... a les files del bloc que tenen contingut però no
+ * ID. La columna d'IDs es llegeix una sola vegada i cada tram de files
+ * consecutives s'escriu amb una sola crida. Els IDs nous també es desen a values.
+ */
+function assignarIdsAutomatics_(sheet, firstRow, values, cols) {
+  const pendents = [];
+  values.forEach((rowValues, i) => {
+    if (normalitzarId_(rowValues[cols.id - 1]) !== null) return;
+    const teContingut = rowValues.some((v, idx) => idx !== cols.id - 1 && !esBuit_(v));
+    if (teContingut) pendents.push(i);
+  });
+  if (pendents.length === 0) return;
+
+  const lastRow = sheet.getLastRow();
+  let maxId = 0;
+  if (lastRow >= CFG.FIRST_DATA_ROW) {
+    const ids = sheet
+      .getRange(CFG.FIRST_DATA_ROW, cols.id, lastRow - CFG.FIRST_DATA_ROW + 1, 1)
+      .getValues();
+    ids.forEach(row => {
+      const id = normalitzarId_(row[0]);
+      if (id !== null && id > maxId) maxId = id;
+    });
+  }
+
+  pendents.forEach(i => { values[i][cols.id - 1] = ++maxId; });
+
+  for (let k = 0; k < pendents.length;) {
+    let j = k;
+    while (j + 1 < pendents.length && pendents[j + 1] === pendents[j] + 1) j++;
+    const tram = pendents.slice(k, j + 1).map(i => [values[i][cols.id - 1]]);
+    sheet.getRange(firstRow + pendents[k], cols.id, tram.length, 1).setValues(tram);
+    k = j + 1;
+  }
+  invalidarCacheOfertesMestre_();
 }
 
 
@@ -1076,7 +1052,7 @@ function corregirDuplicatsIntroduitsPerEdicioMultipleMestre_(e, cols) {
   const firstEditedRow = e.range.getRow();
   const lastEditedRow = e.range.getLastRow();
   const lastRow = sheet.getLastRow();
-  if (lastRow < CFG.FIRST_DATA_ROW) return;
+  if (lastRow < CFG.FIRST_DATA_ROW) return false;
 
   const lock = LockService.getScriptLock();
   if (!obtenirLock_(lock, CFG.RECONCILIATION_LOCK_TIMEOUT_MS)) {
@@ -1879,12 +1855,17 @@ function configurarFormulesDiesContacte_(master) {
 // algú l'ha modificada (una lectura en lloc de dues escriptures). El mestre no
 // té trigger onChange, i així una fila inserida a mà la rep en editar-la.
 function configurarFormulaDiesFila_(sheet, row, cols) {
-  const cell = sheet.getRange(row, cols.diesContacte);
-  const formula = formulaDiesContacteR1C1_(cols);
-  if (cell.getFormulaR1C1() === formula) return;
+  configurarFormulesDiesFiles_(sheet, row, 1, cols);
+}
 
-  cell.setFormulaR1C1(formula);
-  cell.setNumberFormat('0');
+
+function configurarFormulesDiesFiles_(sheet, firstRow, numRows, cols) {
+  const range = sheet.getRange(firstRow, cols.diesContacte, numRows, 1);
+  const formula = formulaDiesContacteR1C1_(cols);
+  if (range.getFormulasR1C1().every(row => row[0] === formula)) return;
+
+  range.setFormulaR1C1(formula);
+  range.setNumberFormat('0');
 }
 
 
