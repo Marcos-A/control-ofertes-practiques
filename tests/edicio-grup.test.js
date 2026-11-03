@@ -454,3 +454,42 @@ test('les dades de l\'empresa es copien i s\'esborren bé encara que les columne
   assert.deepEqual([fila.nomEstudiant, fila.tipus], ['Estudiant', 'Acord']);
   assert.equal(esc.fullGrup('GA1A')._valor(2, esc.columna(esc.fullGrup('GA1A'), 'Data inici')), 'Setembre');
 });
+
+test('Tipus i Origen només es gestionen a les files 2 a 101', async t => {
+  const AVIS = 'Només es poden registrar contactes i acords a les files 2 a 101.';
+
+  await t.test('una reserva a la fila 102 es rebutja', () => {
+    const esc = nouEscenari();
+    const full = esc.fullGrup('GA1A');
+
+    esc.editar(full, 102, 'Tipus', 'Contacte');
+    esc.editar(full, 102, 'Origen', '1');
+
+    assert.deepEqual(metadadesOferta(esc.oferta(1)), ['Pendent', '']);
+    assert.deepEqual([esc.filaGrup('GA1A', 102).tipus, esc.filaGrup('GA1A', 102).origen], ['', '']);
+    assert.deepEqual(dadesEmpresaFila(esc, 'GA1A', 102), BUIT);
+    assert.deepEqual(esc.avisos(), [AVIS, AVIS]);
+
+    // La reconciliació no hi troba res a desfer.
+    esc.executar('reconciliarSistemaManualment');
+    assert.equal(esc.oferta(1).estat, 'Pendent');
+  });
+
+  await t.test('la fila 101 encara es gestiona', () => {
+    const esc = nouEscenari();
+    triar(esc, 'GA1A', 101, 'Acord', 1);
+    assert.deepEqual(metadadesOferta(esc.oferta(1)), ['Assignada', 'GA1A']);
+    assert.deepEqual(esc.avisos(), []);
+  });
+
+  await t.test('les altres columnes de les files següents no es toquen', () => {
+    const esc = nouEscenari();
+    esc.editar(esc.fullGrup('GA1A'), 150, 'Nom estudiant', 'Estudiant');
+    assert.equal(esc.filaGrup('GA1A', 150).nomEstudiant, 'Estudiant');
+    assert.deepEqual(esc.avisos(), []);
+  });
+});
+
+function metadadesOferta(oferta) {
+  return [oferta.estat, oferta.gestionada];
+}

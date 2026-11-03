@@ -47,7 +47,7 @@ Utilitza'l quan ja hi ha un acord de pràctiques.
 
 Al full del teu grup:
 
-1. Crea una fila nova.  
+1. Crea una fila nova, entre les files 2 i 101 (el sistema no gestiona les files de més avall).  
 2. Selecciona **Contacte** a *Tipus*.  
 3. Selecciona l'ID de l'oferta a *Origen*.
 

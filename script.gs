@@ -5,7 +5,8 @@
  *     inicials i el signe + dels telèfons, i el text que començava per = es
  *     convertia en fórmula); el límit del full auxiliar es comprova abans de
  *     publicar; l'auditoria ja no informa de la Data contacte d'ofertes que
- *     no són Contactada.
+ *     no són Contactada; Tipus i Origen només s'accepten a les files que
+ *     gestiona el sistema (2 a 101).
  * v9: rendiment (reconciliació amb lectures i neteges en bloc, escriptures
  *     només dels valors que canvien, memòria cau d'execució per a fitxers,
  *     capçaleres i usos de les ofertes) i correcció de Telèfon i Localitat,
@@ -391,7 +392,8 @@ function gestionarEdicioCompartit(e) {
     }
 
     if (!CFG.GRUPS.includes(name)) return;
-    if (range.getRow() < CFG.FIRST_DATA_ROW) return;
+    const row = range.getRow();
+    if (row < CFG.FIRST_DATA_ROW) return;
 
     const cols = obtenirColumnesGrup_(sheet);
 
@@ -401,6 +403,19 @@ function gestionarEdicioCompartit(e) {
     }
 
     const col = range.getColumn();
+
+    // La reconciliació, els usos i les validacions només cobreixen les files
+    // de dades previstes: una reserva més avall quedaria òrfena i es desfaria
+    // en la propera reconciliació, amb les dades de l'empresa a la vista.
+    const lastManagedRow = CFG.FIRST_DATA_ROW + CFG.MAX_ACORDS_PER_GRUP - 1;
+    if ((col === cols.tipus || col === cols.origen) && row > lastManagedRow) {
+      restaurarValor_(range, e.oldValue);
+      avisarEn_(e.source,
+        `Només es poden registrar contactes i acords a les files ${CFG.FIRST_DATA_ROW} a ${lastManagedRow}.`
+      );
+      return;
+    }
+
     if (col === cols.tipus) {
       gestionarCanviTipus_(e, cols);
     } else if (col === cols.origen) {
