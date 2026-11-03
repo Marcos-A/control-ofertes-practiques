@@ -2,7 +2,7 @@
 
 Pla de treball pendent per a [`script.gs`](script.gs). Està pensat perquè una persona o un agent el pugui continuar sense context previ.
 
-**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; falten la resta de proves de caracterització de la secció 2.4.
+**Estat actual:** v9 (commit `610fc06`). La fase 1 d'optimització està feta: reconciliació en bloc, memòria cau d'execució i correcció de Telèfon i Localitat. El banc de proves (secció 2) ja existeix, amb les proves de fidelitat dels dobles, d'instal·lació i el primer pressupost de rendiment; també hi ha les proves de reconciliació i d'edició als fulls de grup (inclosos edicions múltiples i canvis estructurals). Falten les proves de caracterització de la secció 2.4 d'edició al mestre, publicació i auditoria.
 
 **Ordre recomanat:**
 1. Primer, el banc de proves (secció 2) i les proves de caracterització de la v9 actual.
@@ -114,33 +114,33 @@ Cada cas parteix d'una fixture mínima, simula l'esdeveniment i comprova l'estat
 
 **Edició als fulls de grup** (`edicio-grup.test.js`, correspon a la llista de proves del README)
 
-- [ ] Contacte + ID Pendent: l'oferta passa a Contactada, Gestionada per = grup, Data contacte = avui i les 6 dades de l'empresa a la fila del grup (incloses Telèfon i Localitat).
-- [ ] Contacte → Acord: l'oferta passa a Assignada i Data contacte es conserva.
-- [ ] Acord + ID directe: Assignada sense Data contacte.
-- [ ] Acord + `propi`: no es toca el mestre i les dades manuals es conserven.
-- [ ] Contacte + `propi`: es rebutja amb avís i es restaura el valor anterior.
-- [ ] Canviar l'ID d'Origen per un altre de Pendent: l'antic torna a Pendent i el nou es reserva.
-- [ ] Triar un ID que no està Pendent o que ja usa una altra fila: es rebutja i el mestre no canvia.
-- [ ] Esborrar Origen o Tipus: l'oferta torna a Pendent i les dades de la fila s'esborren.
-- [ ] Origen sense Tipus: es rebutja amb «Selecciona primer el Tipus».
-- [ ] Sistema ocupat (bloqueig no disponible): es restaura el valor anterior, s'avisa i el mestre no canvia.
-- [ ] Edició del full `Ofertes`: es republica i s'avisa.
+- [x] Contacte + ID Pendent: l'oferta passa a Contactada, Gestionada per = grup, Data contacte = avui i les 6 dades de l'empresa a la fila del grup (incloses Telèfon i Localitat).
+- [x] Contacte → Acord: l'oferta passa a Assignada i Data contacte es conserva.
+- [x] Acord + ID directe: Assignada sense Data contacte.
+- [x] Acord + `propi`: no es toca el mestre i les dades manuals es conserven.
+- [x] Contacte + `propi`: es rebutja amb avís i es restaura el valor anterior.
+- [x] Canviar l'ID d'Origen per un altre de Pendent: l'antic torna a Pendent i el nou es reserva.
+- [x] Triar un ID que no està Pendent o que ja usa una altra fila: es rebutja i el mestre no canvia.
+- [x] Esborrar Origen o Tipus: l'oferta torna a Pendent i les dades de la fila s'esborren.
+- [x] Origen sense Tipus: es rebutja amb «Selecciona primer el Tipus».
+- [x] Sistema ocupat (bloqueig no disponible): es restaura el valor anterior, s'avisa i el mestre no canvia.
+- [x] Edició del full `Ofertes`: es republica i s'avisa.
 
 **Edicions múltiples i canvis estructurals**
 
-- [ ] Esborrar un rang de diverses files: totes les ofertes afectades tornen a Pendent i les dades s'esborren.
-- [ ] Enganxar el mateix ID en dos grups: només es conserva l'ús del grup que la gestionava.
-- [ ] Eliminar físicament una fila (onChange `REMOVE_ROW`): l'oferta queda òrfena i torna a Pendent.
-- [ ] Edició múltiple amb el bloqueig ocupat: es marca la propietat `PRACTIQUES_RECONCILIACIO_PENDENT` i la propera execució de qualsevol trigger la completa i l'esborra.
+- [x] Esborrar un rang de diverses files: totes les ofertes afectades tornen a Pendent i les dades s'esborren.
+- [x] Enganxar el mateix ID en dos grups: només es conserva l'ús del grup que la gestionava.
+- [x] Eliminar físicament una fila (onChange `REMOVE_ROW`): l'oferta queda òrfena i torna a Pendent.
+- [x] Edició múltiple amb el bloqueig ocupat: es marca la propietat `PRACTIQUES_RECONCILIACIO_PENDENT` i la propera execució de qualsevol trigger la completa i l'esborra.
 
 **Reconciliació** (`reconciliacio.test.js`)
 
-- [ ] Regressió v9: Telèfon i Localitat es conserven i s'emplenen si falten.
-- [ ] Les dades sobrants en files sense Tipus s'esborren; les files `propi` no es toquen.
-- [ ] Una oferta activa sense cap ús torna a Pendent i se n'esborren Gestionada per i Data contacte.
-- [ ] Referències a ofertes Esperant informació, Descartada o inexistents: s'esborren.
-- [ ] Una oferta activa d'un grup no la pot «robar» una referència enganxada en un altre grup.
-- [ ] Idempotència: una segona execució seguida no fa cap escriptura.
+- [x] Regressió v9: Telèfon i Localitat es conserven i s'emplenen si falten.
+- [x] Les dades sobrants en files sense Tipus s'esborren; les files `propi` no es toquen.
+- [x] Una oferta activa sense cap ús torna a Pendent i se n'esborren Gestionada per i Data contacte.
+- [x] Referències a ofertes Esperant informació, Descartada o inexistents: s'esborren.
+- [x] Una oferta activa d'un grup no la pot «robar» una referència enganxada en un altre grup.
+- [x] Idempotència: una segona execució seguida no fa cap escriptura.
 
 **Edició al mestre** (`edicio-mestre.test.js`)
 
@@ -267,6 +267,11 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 - [ ] Actualitzar el comentari de la secció «MEMÒRIA CAU D'EXECUCIÓ DEL MESTRE» perquè descrigui totes les memòries cau i les regles d'invalidació (vegeu 1.2).
 
 ### 3.5 A investigar
+
+- [ ] **Telèfons amb zeros inicials:** `poblarDadesOfertaFila_` i `poblarDadesOfertaFilaSiCal_` copien el Telèfon amb `setValue`, que l'interpreta com si s'hagués teclejat. Si el mestre el té com a text només amb dígits i zeros inicials (per exemple, `0034930000001`), al grup queda com a nombre i es perden els zeros. També caldria comprovar què fa Sheets amb el prefix `+` sense espais.
+  - Cal comprovar quin format tenen les columnes Telèfon dels fitxers reals.
+  - Solució possible: format de text (`@`) a la columna Telèfon dels grups, o escriure el valor com a text. El doble de `setValue` encara no respecta el format `@`: caldria afegir-ho i cobrir-ho a `dobles.test.js`.
+  - Les proves fan servir telèfons amb tres formes (nombre, text només amb dígits i text amb espais; vegeu `telefonDeMostra` a `escenari.js`).
 
 - [ ] `gestionarCanviEstructuralCompartit` fa una reconciliació completa i refà totes les validacions per a qualsevol inserció o eliminació de files del fitxer compartit, encara que sigui al full `Ofertes`. L'esdeveniment onChange no informa del full afectat.
   - Cal valorar si `e.source.getActiveSheet()` és fiable en aquest context.

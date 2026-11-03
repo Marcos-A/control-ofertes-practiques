@@ -82,6 +82,22 @@ const CAMPS_EMPRESA_GRUP = Object.freeze({
 });
 
 
+/*
+ * Telèfons de mostra: no es pot suposar cap format. Es reparteixen entre les
+ * tres formes que pot tenir una cel·la del mestre:
+ *   - nombre: dígits seguits escrits en una cel·la amb format automàtic;
+ *   - text només amb dígits: columna amb format de text o dades importades;
+ *   - text amb espais.
+ */
+function telefonDeMostra(id) {
+  const digits = `93000${String(id).padStart(4, '0')}`;
+  switch (id % 3) {
+    case 0: return Number(digits);
+    case 1: return digits;
+    default: return `${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`;
+  }
+}
+
 // Oferta de mostra amb totes les dades omplertes.
 function ofertaDeMostra(id, camps = {}) {
   return {
@@ -90,7 +106,7 @@ function ofertaDeMostra(id, camps = {}) {
     empresa: `Empresa ${id}`,
     personaContacte: `Persona ${id}`,
     correu: `contacte${id}@exemple.cat`,
-    telefon: `93000${String(id).padStart(4, '0')}`,
+    telefon: telefonDeMostra(id),
     adreca: `Carrer ${id}`,
     cicle: 'GA',
     tasques: `Tasques ${id}`,
@@ -101,11 +117,15 @@ function ofertaDeMostra(id, camps = {}) {
   };
 }
 
-// Dades d'empresa que l'script copia a la fila del grup per a una oferta.
+/*
+ * Dades d'empresa que queden a la fila del grup quan l'script hi copia una
+ * oferta. L'script les escriu amb setValue, que interpreta el valor com si
+ * l'usuari l'hagués teclejat: el text "930000001" queda desat com a nombre.
+ */
 function dadesEmpresaDe(oferta) {
   const dades = {};
   for (const [campGrup, campOferta] of Object.entries(CAMPS_EMPRESA_GRUP)) {
-    dades[campGrup] = oferta[campOferta] || '';
+    dades[campGrup] = interpretarValor(oferta[campOferta] || '');
   }
   return dades;
 }
