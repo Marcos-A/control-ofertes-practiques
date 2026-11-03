@@ -256,8 +256,9 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
     - llegir el contingut publicat actual i no escriure res si és idèntic;
     - esborrar només les files sobrants;
     - fer que retorni la llista d'IDs Pendent, perquè les validacions no hagin de tornar a llegir el mestre (`obtenirPendentsIds_`).
-- [ ] **`gestionarEdicioMestre`** llegeix la fila sencera en dues funcions diferents (`assignarIdAutomaticSiCal_` i `obtenirOfertaPerFilaMestre_`).
+- [x] **`gestionarEdicioMestre`** llegeix la fila sencera en dues funcions diferents (`assignarIdAutomaticSiCal_` i `obtenirOfertaPerFilaMestre_`).
   - **Solució:** llegir-la una vegada i passar els valors.
+  - Fet: la fila es llegeix una vegada i es passa a `assignarIdAutomaticSiCal_` i `gestionarCanviEstatMestre_`; `obtenirOfertaPerFilaMestre_` ja no cal. Edició al mestre: de 30 a 26 crides.
 
 - [x] **`obtenirColumnesMestre_`** i **`obtenirColumnesGrup_`** criden `sheet.getName()` una vegada per capçalera obligatòria (17 al mestre i 8 per grup), i `assegurarFilesGrup_` també el crida. En una reconciliació són 127 de les 213 crides.
   - **Solució:** llegir el nom una sola vegada al començament de cada funció.

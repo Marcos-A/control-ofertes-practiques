@@ -412,13 +412,16 @@ function gestionarEdicioCompartit(e) {
 }
 
 
-function assignarIdAutomaticSiCal_(sheet, row, cols) {
-  const idCell = sheet.getRange(row, cols.id);
-  if (normalitzarId_(idCell.getValue()) !== null) return;
+/*
+ * rowValues (opcional): valors de la fila ja llegits. Si s'assigna un ID,
+ * s'hi actualitza perquè qui l'ha passat no hagi de tornar a llegir la fila.
+ */
+function assignarIdAutomaticSiCal_(sheet, row, cols, rowValuesOpt) {
+  const lastCol = Math.max(...Object.values(cols));
+  const rowValues = rowValuesOpt || sheet.getRange(row, 1, 1, lastCol).getValues()[0];
+  if (normalitzarId_(rowValues[cols.id - 1]) !== null) return;
 
   // Comprovem que la fila no sigui completament buida (excepte ID).
-  const lastCol = Math.max(...Object.values(cols));
-  const rowValues = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
   const teContingut = rowValues.some(function(v, idx) {
     return idx !== cols.id - 1 && v !== '' && v !== null && v !== undefined;
   });
@@ -435,7 +438,8 @@ function assignarIdAutomaticSiCal_(sheet, row, cols) {
     }
   }
 
-  idCell.setValue(maxId + 1);
+  sheet.getRange(row, cols.id).setValue(maxId + 1);
+  rowValues[cols.id - 1] = maxId + 1;
 }
 
 
@@ -471,19 +475,23 @@ function gestionarEdicioMestre(e) {
       return;
     }
 
+    // Una sola lectura de la fila per a l'ID automàtic, l'estat i les dades.
+    const row = e.range.getRow();
+    const rowValues = sheet.getRange(row, 1, 1, Math.max(...Object.values(cols))).getValues()[0];
+
     // Auto-assignar ID si la fila no en té.
-    if (col !== cols.id) {
-      assignarIdAutomaticSiCal_(sheet, e.range.getRow(), cols);
-    }
+    assignarIdAutomaticSiCal_(sheet, row, cols, rowValues);
 
     if (col === cols.estat) {
-      gestionarCanviEstatMestre_(e, cols);
+      gestionarCanviEstatMestre_(e, cols, rowValues);
       return;
     }
 
-    configurarFormulaDiesFila_(sheet, e.range.getRow(), cols);
+    configurarFormulaDiesFila_(sheet, row, cols);
 
-    const offer = obtenirOfertaPerFilaMestre_(sheet, e.range.getRow(), cols);
+    // Inclou tots els camps (també Telèfon i Localitat): sincronitzarDadesOfertaActiva_
+    // els copia al grup i, si faltessin, s'hi escriurien buits.
+    const offer = construirOfertaDesDeFila_(rowValues, row, cols);
     if (offer && offer.id !== null) {
       if (offer.estat === CFG.ESTATS.PENDENT) {
         actualitzarPublicacio();
@@ -890,12 +898,12 @@ function gestionarCanviIdMestre_(e, cols) {
 }
 
 
-function gestionarCanviEstatMestre_(e, cols) {
+function gestionarCanviEstatMestre_(e, cols, rowValues) {
   const sheet = e.range.getSheet();
   const row = e.range.getRow();
   const newState = normalitzarText_(e.value);
   const oldState = normalitzarText_(e.oldValue);
-  const id = normalitzarId_(sheet.getRange(row, cols.id).getValue());
+  const id = normalitzarId_(rowValues[cols.id - 1]);
 
   const allowed = Object.values(CFG.ESTATS);
   if (newState && !allowed.includes(newState)) {
@@ -1870,14 +1878,6 @@ function obtenirOfertaPerId_(offerId) {
   const id = normalitzarId_(offerId);
   if (id === null) return null;
   return obtenirMapaOfertesMestre_().get(id) || null;
-}
-
-
-function obtenirOfertaPerFilaMestre_(sheet, row, cols) {
-  const values = sheet.getRange(row, 1, 1, Math.max(...Object.values(cols))).getValues()[0];
-  // Inclou tots els camps (també Telèfon i Localitat): sincronitzarDadesOfertaActiva_
-  // els copia al grup i, si faltessin, s'hi escriurien buits.
-  return construirOfertaDesDeFila_(values, row, cols);
 }
 
 

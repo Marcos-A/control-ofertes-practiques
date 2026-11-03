@@ -144,7 +144,7 @@ test('enganxar 100 files al mestre: el cost creix linealment', () => {
   // d'IDs (unes 1.000 cel·les amb el mestre de 1.000 files): el cost és el
   // producte de les files enganxades per la mida del mestre (secció 3.2).
   const real = comprovarPressupost(enganxarAlMestre(100), {
-    total: 841, getValues: 201, escriptures: 108, celes: 118700
+    total: 741, getValues: 201, escriptures: 108, celes: 118600
   });
   assert.deepEqual(real, gran);
 
@@ -173,5 +173,5 @@ test('editar una dada d\'una oferta activa al mestre', () => {
 
   assert.equal(esc.filaGrup('GA1A', 2).telefon, 931234567);
   // v9: 64 crides.
-  comprovarPressupost(esc.comptador, { total: 30, getValues: 2, escriptures: 3, celes: 148 });
+  comprovarPressupost(esc.comptador, { total: 26, getValues: 2, escriptures: 3, celes: 147 });
 });
