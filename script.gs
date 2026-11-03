@@ -1,5 +1,11 @@
 /*******************************************************
  * CONTROL D'OFERTES I ACORDS DE PRÀCTIQUES
+ * v10 (en curs): correccions trobades amb el banc de proves. El text de les
+ *     ofertes es copia literalment al grup i a Ofertes (es perdien els zeros
+ *     inicials i el signe + dels telèfons, i el text que començava per = es
+ *     convertia en fórmula); el límit del full auxiliar es comprova abans de
+ *     publicar; l'auditoria ja no informa de la Data contacte d'ofertes que
+ *     no són Contactada.
  * v9: rendiment (reconciliació amb lectures i neteges en bloc, escriptures
  *     només dels valors que canvien, memòria cau d'execució per a fitxers,
  *     capçaleres i usos de les ofertes) i correcció de Telèfon i Localitat,
@@ -1171,13 +1177,13 @@ function actualitzarPublicacioIAuxiliarSenseLock_() {
     publicSheet.getRange(2, 1, pending.length, CFG.PUBLIC_HEADERS.length)
       .setValues(pending.map(o => [
         o.id,
-        o.cicle,
-        o.tasques,
-        o.torn,
-        o.localitat,
-        o.dataIncorporacio,
-        o.modalitat,
-        o.comentaris
+        comText_(o.cicle),
+        comText_(o.tasques),
+        comText_(o.torn),
+        comText_(o.localitat),
+        comText_(o.dataIncorporacio),
+        comText_(o.modalitat),
+        comText_(o.comentaris)
       ]));
   }
 
@@ -1386,12 +1392,12 @@ function refrescarTotesValidacionsOrigen_() {
 function poblarDadesOfertaFila_(sheet, row, cols, offer) {
   if (!offer) return;
 
-  sheet.getRange(row, cols.personaContacte).setValue(offer.personaContacte || '');
-  sheet.getRange(row, cols.correu).setValue(offer.correu || '');
-  sheet.getRange(row, cols.telefon).setValue(offer.telefon || '');
-  sheet.getRange(row, cols.adreca).setValue(offer.adreca || '');
-  sheet.getRange(row, cols.localitat).setValue(offer.localitat || '');
-  sheet.getRange(row, cols.nomEmpresa).setValue(offer.empresa || '');
+  sheet.getRange(row, cols.personaContacte).setValue(comText_(offer.personaContacte || ''));
+  sheet.getRange(row, cols.correu).setValue(comText_(offer.correu || ''));
+  sheet.getRange(row, cols.telefon).setValue(comText_(offer.telefon || ''));
+  sheet.getRange(row, cols.adreca).setValue(comText_(offer.adreca || ''));
+  sheet.getRange(row, cols.localitat).setValue(comText_(offer.localitat || ''));
+  sheet.getRange(row, cols.nomEmpresa).setValue(comText_(offer.empresa || ''));
 }
 
 
@@ -1651,7 +1657,7 @@ function poblarDadesOfertaFilaSiCal_(ctx, i, offer) {
   Object.keys(CAMPS_DADES_GRUP_).forEach(camp => {
     const nou = offer[CAMPS_DADES_GRUP_[camp]] || '';
     if (!valorsIguals_(valorBlocGrup_(ctx, i, camp), nou)) {
-      ctx.sheet.getRange(row, ctx.cols[camp]).setValue(nou);
+      ctx.sheet.getRange(row, ctx.cols[camp]).setValue(comText_(nou));
     }
   });
 }
@@ -2136,6 +2142,18 @@ function restaurarValor_(range, oldValue) {
   } else {
     range.setValue(oldValue);
   }
+}
+
+
+/*
+ * setValue(s) interpreta les cadenes com si s'haguessin teclejat: el text
+ * "0034930000001" es desaria com a nombre (sense els zeros), "+34930000001"
+ * perdria el signe i "=..." seria una fórmula. Un apòstrof inicial força el
+ * text: Sheets no el desa ni el retorna en llegir la cel·la. Els nombres i les
+ * dates es copien tal qual.
+ */
+function comText_(value) {
+  return typeof value === 'string' && value !== '' ? '\'' + value : value;
 }
 
 

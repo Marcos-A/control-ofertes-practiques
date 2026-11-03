@@ -114,6 +114,19 @@ test('les files sobrants de publicacions anteriors s\'esborren', async t => {
   });
 });
 
+test('les dades de text es publiquen tal com són al mestre', () => {
+  // Regressió: setValues interpretava el text com si s'hagués teclejat.
+  const literals = {
+    cicle: '+GA', tasques: '=Tasques', torn: '0800', localitat: '08001',
+    modalitat: '-Presencial', comentaris: '+34 Comentari'
+  };
+  const esc = new Escenari({ ofertes: [ofertaDeMostra(1, literals)] });
+
+  const [fila] = esc.ofertesPublicades();
+  assert.deepEqual(fila, [1, '+GA', '=Tasques', '0800', '08001', '', '-Presencial', '+34 Comentari']);
+  assert.equal(esc.fullOfertes.getRange(2, 3).getFormula(), '');
+});
+
 test('el full Ofertes creix si hi ha més ofertes Pendent que files', () => {
   const esc = new Escenari({ ofertes: ofertesPendents(1100) });
 

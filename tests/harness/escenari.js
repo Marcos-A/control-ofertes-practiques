@@ -119,13 +119,13 @@ function ofertaDeMostra(id, camps = {}) {
 
 /*
  * Dades d'empresa que queden a la fila del grup quan l'script hi copia una
- * oferta. L'script les escriu amb setValue, que interpreta el valor com si
- * l'usuari l'hagués teclejat: el text "930000001" queda desat com a nombre.
+ * oferta: els mateixos valors que al mestre, també quan són text amb forma
+ * de nombre (l'script els escriu com a text).
  */
 function dadesEmpresaDe(oferta) {
   const dades = {};
   for (const [campGrup, campOferta] of Object.entries(CAMPS_EMPRESA_GRUP)) {
-    dades[campGrup] = interpretarValor(oferta[campOferta] || '');
+    dades[campGrup] = oferta[campOferta] || '';
   }
   return dades;
 }

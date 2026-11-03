@@ -107,7 +107,7 @@ Els dobles han de reproduir aquests comportaments de Google Sheets; si no, les p
 - [x] Altres comportaments que l'script necessita i que no eren a la llista: `insertSheet`, `insertColumnsAfter`, `hideSheet`/`isSheetHidden`, `clear()`, `RangeList.getRanges`, `getRanges` de les regles de format, `whenNumberBetween`/`whenNumberGreaterThanOrEqualTo`/`setBackground`/`setRanges` del constructor de formats, `ScriptApp.newTrigger`/`getProjectTriggers`/`deleteTrigger`/`getHandlerFunction` i `getUi().createMenu`.
 - [x] Una cel·la amb fórmula retorna `''` a `getValues()` (les fórmules no s'avaluen), però compta com a contingut per a `getLastRow()`, igual que a Sheets. Per això, després d'instal·lar, el `getLastRow()` del mestre és l'última fila del full (la fórmula de Dies en contacte ocupa tota la columna).
 - [x] `setValue("5")` desa `5`, com a Sheets (afecta `restaurarValor_`), i els rangs fora de la graella llancen un error.
-- [ ] Formats de número: a Sheets, `getValue()` d'una cel·la amb format de data retorna un `Date` encara que s'hi hagi escrit un nombre, i `setValue` en una cel·la amb format de text (`@`) desa el text sense interpretar-lo. El doble desa els formats però no els aplica. Afecta `restaurarValor_` a Data contacte (la prova comprova el nombre de sèrie) i els telèfons de la secció 3.5.
+- [ ] Formats de número: a Sheets, `getValue()` d'una cel·la amb format de data retorna un `Date` encara que s'hi hagi escrit un nombre. El doble desa els formats però no els aplica. Afecta `restaurarValor_` a Data contacte (la prova comprova el nombre de sèrie).
 
 ### 2.4 Casos de prova
 
@@ -269,11 +269,6 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 
 ### 3.5 A investigar
 
-- [ ] **Telèfons amb zeros inicials:** `poblarDadesOfertaFila_` i `poblarDadesOfertaFilaSiCal_` copien el Telèfon amb `setValue`, que l'interpreta com si s'hagués teclejat. Si el mestre el té com a text només amb dígits i zeros inicials (per exemple, `0034930000001`), al grup queda com a nombre i es perden els zeros. També caldria comprovar què fa Sheets amb el prefix `+` sense espais.
-  - Cal comprovar quin format tenen les columnes Telèfon dels fitxers reals.
-  - Solució possible: format de text (`@`) a la columna Telèfon dels grups, o escriure el valor com a text. El doble de `setValue` encara no respecta el format `@`: caldria afegir-ho i cobrir-ho a `dobles.test.js`.
-  - Les proves fan servir telèfons amb tres formes (nombre, text només amb dígits i text amb espais; vegeu `telefonDeMostra` a `escenari.js`).
-
 - [ ] `gestionarCanviEstructuralCompartit` fa una reconciliació completa i refà totes les validacions per a qualsevol inserció o eliminació de files del fitxer compartit, encara que sigui al full `Ofertes`. L'esdeveniment onChange no informa del full afectat.
   - Cal valorar si `e.source.getActiveSheet()` és fiable en aquest context.
   - Si no ho és, deixar-ho com està (és un cas poc freqüent).
@@ -287,4 +282,5 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 - [ ] Cada optimització de la secció 3 va en un commit propi i no trenca cap prova.
 - [ ] Els pressupostos de crides de la secció 2.5 es fixen i s'ajusten a la baixa a mesura que s'optimitza.
 - [ ] La capçalera de `script.gs` documenta la nova versió (v10) i el README explica com executar les proves.
+- [ ] Comprovar en una còpia real que el text amb forma de nombre o de fórmula es copia literalment al grup i a `Ofertes` (`comText_`): un telèfon `0034...` o `+34...` sense espais, i un comentari que comenci per `=` o `+`. Els dobles reprodueixen l'apòstrof inicial, però no s'ha pogut verificar amb Sheets.
 - [ ] Prova manual final en còpies dels dos fitxers reals, seguint la llista de proves del README: el banc de proves no cobreix els bloquejos reals, el temps dels triggers, els permisos ni la visualització dels desplegables.

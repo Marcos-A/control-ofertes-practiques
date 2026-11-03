@@ -8,7 +8,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { interpretarValor } = require('./harness/sheets-fake');
 const { Escenari, ofertaDeMostra, dadesEmpresaDe } = require('./harness/escenari');
 
 const AVIS_CAMPS_SISTEMA = 'Gestionada per, Data contacte i Dies en contacte són camps gestionats automàticament.';
@@ -289,14 +288,18 @@ test('editar les dades d\'una oferta activa les propaga a la fila del grup', asy
     esc.editar(esc.fullMestre, filaDeId(1), 'Localitat', 'Localitat nova');
     esc.editar(esc.fullMestre, filaDeId(1), 'Empresa', 'Empresa nova');
 
-    const esperat = dadesEmpresaDe({
-      ...ofertaDeMostra(1), telefon: '931234567', localitat: 'Localitat nova', empresa: 'Empresa nova'
+    // El grup rep el que desa el mestre: el telèfon teclejat sense espais hi
+    // queda com a nombre.
+    const mestre = esc.oferta(1);
+    assert.equal(mestre.telefon, 931234567);
+    assert.deepEqual(dadesEmpresaDe(mestre), {
+      ...dadesEmpresaDe(ofertaDeMostra(1)), telefon: 931234567, localitat: 'Localitat nova', nomEmpresa: 'Empresa nova'
     });
+
     const fila = esc.filaGrup('GA1A', 4);
-    for (const camp of Object.keys(esperat)) {
-      assert.deepEqual(fila[camp], esperat[camp], camp);
+    for (const [camp, valor] of Object.entries(dadesEmpresaDe(mestre))) {
+      assert.deepEqual(fila[camp], valor, camp);
     }
-    assert.equal(fila.telefon, interpretarValor('931234567'));
     assert.deepEqual(esc.avisos(), []);
   });
 

@@ -383,3 +383,49 @@ test('edició múltiple amb el bloqueig ocupat: la propera execució de qualsevo
     });
   }
 });
+
+test('les dades de text de l\'oferta es copien al grup tal com són al mestre', async t => {
+  // Regressió: setValue interpretava el text com si s'hagués teclejat i es
+  // perdien els zeros inicials i el signe +, o el text es convertia en fórmula.
+  const literals = {
+    telefon: '0034930000001',
+    localitat: '+34 Localitat',
+    personaContacte: '=Persona',
+    correu: '0034@exemple.cat',
+    adreca: '08001',
+    empresa: '+34930000001'
+  };
+  const esperat = dadesEmpresaDe(ofertaDeMostra(1, literals));
+  assert.equal(esperat.telefon, '0034930000001');
+
+  function escenari() {
+    return new Escenari({ ofertes: [ofertaDeMostra(1, literals), ofertaDeMostra(2)] });
+  }
+
+  await t.test('en reservar l\'oferta', () => {
+    const esc = escenari();
+    triar(esc, 'GA1A', 2, 'Contacte', 1);
+    assert.deepEqual(dadesEmpresaFila(esc, 'GA1A', 2), esperat);
+    assert.equal(esc.fullGrup('GA1A').getRange(2, esc.columna(esc.fullGrup('GA1A'), 'Persona contacte')).getFormula(), '');
+  });
+
+  await t.test('en editar una dada al mestre', () => {
+    const esc = escenari();
+    triar(esc, 'GA1A', 2, 'Acord', 1);
+    esc.escriureOferta(2, { telefon: '0034930000002' });
+    esc.editar(esc.fullMestre, 2, 'Comentaris', 'Comentari');
+    assert.equal(esc.filaGrup('GA1A', 2).telefon, '0034930000002');
+  });
+
+  await t.test('en reconciliar', () => {
+    const esc = escenari();
+    esc.escriureFilaGrup('GA1A', 2, { tipus: 'Acord', origen: 1 });
+    esc.executar('reconciliarSistemaManualment');
+    assert.deepEqual(dadesEmpresaFila(esc, 'GA1A', 2), esperat);
+
+    // I una segona reconciliació no les torna a escriure.
+    esc.reiniciarRegistres();
+    esc.executar('reconciliarDesDelCompartitSenseLock_');
+    assert.equal(esc.comptador.escriptures(), 0);
+  });
+});
