@@ -591,3 +591,27 @@ test('dues edicions simultànies: el canvi de Tipus del grup que la gestiona no 
   assert.equal(esc.filaGrup('GA1B', 5).origen, '');
   assert.deepEqual(esc.avisos(), ['L\'oferta 1 no està Pendent i no es pot seleccionar.']);
 });
+
+test('les escriptures es confirmen (flush) abans d\'alliberar cada bloqueig', () => {
+  // Apps Script acumula les escriptures: sense flush abans de releaseLock, el
+  // trigger següent podria llegir l'oferta encara Pendent.
+  const esc = nouEscenari();
+  esc.mon.sequencia = [];
+
+  triar(esc, 'GA1A', 2, 'Contacte', 1);
+  esc.editar(esc.fullGrup('GA1A'), 2, 'Tipus', 'Acord');
+  esc.editar(esc.fullGrup('GA1A'), 2, 'Origen', '2');
+  esc.esborrar(esc.fullGrup('GA1A'), 2, 'Origen');
+  esc.enganxar(esc.fullGrup('GA1B'), 2, 'Tipus', [['Acord', 3]]);
+  esc.editar(esc.fullMestre, 3, 'ID oferta', '60');
+  esc.enganxar(esc.fullMestre, 8, 'ID oferta', [[1], [70]]);
+  esc.eliminarFiles(esc.fullGrup('GA1B'), 2);
+  esc.executar('reconciliarSistemaManualment');
+
+  const { sequencia } = esc.mon;
+  const alliberaments = sequencia.map((accio, i) => [accio, i]).filter(([accio]) => accio === 'allibera');
+  assert.ok(alliberaments.length >= 9, `només ${alliberaments.length} alliberaments`);
+  for (const [, i] of alliberaments) {
+    assert.equal(sequencia[i - 1], 'flush', `alliberament sense flush: ${sequencia.slice(Math.max(0, i - 3), i + 1)}`);
+  }
+});

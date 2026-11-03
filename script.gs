@@ -11,7 +11,8 @@
  *     d'ofertes actives al mestre les propaga a les files dels grups, com ja
  *     feia l'edició d'una cel·la; si dos tutors trien la mateixa oferta
  *     gairebé alhora, se la queda el primer (abans, la selecció encara no
- *     processada del segon feia rebutjar la del primer).
+ *     processada del segon feia rebutjar la del primer); les escriptures es
+ *     confirmen (flush) abans d'alliberar cada bloqueig.
  *     Rendiment: el nom de cada full i la fila editada del mestre es llegeixen
  *     una vegada; les dades de l'empresa, les validacions d'Origen i els IDs
  *     automàtics s'escriuen en bloc; la fórmula de Dies en contacte, Ofertes i
@@ -285,7 +286,7 @@ function executarReconciliacioPendentSiCal_() {
       SpreadsheetApp.flush();
       props.deleteProperty(CFG.PROP_RECONCILIACIO_PENDENT);
     } finally {
-      lock.releaseLock();
+      alliberarLock_(lock);
     }
 
     actualitzarPublicacioIAuxiliarSenseLock_();
@@ -323,7 +324,7 @@ function instal_larSistema() {
   try {
     reconciliarDesDelCompartitSenseLock_();
   } finally {
-    lock.releaseLock();
+    alliberarLock_(lock);
   }
   refrescarTotesValidacionsOrigen_(actualitzarPublicacioIAuxiliarSenseLock_());
 
@@ -533,7 +534,7 @@ function gestionarCanviEstructuralCompartit(e) {
     try {
       reconciliarDesDelCompartitSenseLock_();
     } finally {
-      lock.releaseLock();
+      alliberarLock_(lock);
     }
     // Canvi estructural excepcional: aquí sí convé reconstruir totes les validacions.
     refrescarTotesValidacionsOrigen_(actualitzarPublicacioIAuxiliarSenseLock_());
@@ -626,7 +627,7 @@ function gestionarCanviTipus_(e, cols) {
       }
     }
   } finally {
-    lock.releaseLock();
+    alliberarLock_(lock);
   }
 
   // TREBALL NO CRÍTIC: fora del lock.
@@ -730,7 +731,7 @@ function gestionarCanviOrigen_(e, cols) {
       calSincronitzarVistes = true;
     }
   } finally {
-    lock.releaseLock();
+    alliberarLock_(lock);
   }
 
   // Fora del lock: dades visibles, publicació, auxiliar i validació local.
@@ -764,12 +765,11 @@ function gestionarEdicioMultipleGrup_(e, cols) {
   }
 
   try {
+    // La reconciliació pot haver retornat ofertes a Pendent al fitxer mestre:
+    // alliberarLock_ ho confirma abans de reconstruir la publicació.
     reconciliarDesDelCompartitSenseLock_();
-    // La reconciliació pot haver retornat ofertes a Pendent al fitxer mestre.
-    // Ho fem efectiu abans de reconstruir la publicació del fitxer compartit.
-    SpreadsheetApp.flush();
   } finally {
-    lock.releaseLock();
+    alliberarLock_(lock);
   }
 
   // Fora del bloqueig global: només actualitzem la projecció i les files tocades.
@@ -898,7 +898,7 @@ function gestionarCanviIdMestre_(e, cols) {
 
     configurarFormulaDiesFila_(sheet, row, cols);
   } finally {
-    lock.releaseLock();
+    alliberarLock_(lock);
   }
 
   // La publicació es refresca fora del bloqueig curt d'unicitat.
@@ -1130,7 +1130,7 @@ function corregirDuplicatsIntroduitsPerEdicioMultipleMestre_(e, cols) {
 
     return corrected;
   } finally {
-    lock.releaseLock();
+    alliberarLock_(lock);
   }
 }
 
@@ -1828,7 +1828,7 @@ function reconciliarSistemaManualment() {
   try {
     reconciliarDesDelCompartitSenseLock_();
   } finally {
-    lock.releaseLock();
+    alliberarLock_(lock);
   }
 
   refrescarTotesValidacionsOrigen_(actualitzarPublicacioIAuxiliarSenseLock_());
@@ -2260,6 +2260,21 @@ function valorsIguals_(a, b) {
     return a instanceof Date && b instanceof Date && a.getTime() === b.getTime();
   }
   return normalitzarText_(a) === normalitzarText_(b);
+}
+
+
+/*
+ * Apps Script acumula les escriptures als fulls: s'han de confirmar amb
+ * flush() mentre encara es té el bloqueig. Si no, l'execució següent pot
+ * obtenir el bloqueig i llegir dades d'abans del canvi (per exemple, una oferta
+ * que encara consta Pendent) i reservar-la dues vegades.
+ */
+function alliberarLock_(lock) {
+  try {
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 

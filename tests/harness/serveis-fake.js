@@ -26,6 +26,9 @@ function crearMon() {
     seguentIdTrigger: 1,
     // ocupat: true fa que waitLock falli (simula el sistema ocupat).
     bloqueig: { ocupat: false, retingut: false, adquisicions: 0, alliberaments: 0, intentsFallits: 0 },
+    // Ordre de les operacions de bloqueig i flush, per comprovar que les
+    // escriptures es confirmen abans d'alliberar el bloqueig.
+    sequencia: [],
     registre: [],
     menus: [],
     alertes: []
@@ -60,6 +63,7 @@ function crearServeis(mon) {
 
     flush() {
       comptar('SpreadsheetApp.flush');
+      mon.sequencia.push('flush');
     },
 
     newDataValidation() {
@@ -106,6 +110,7 @@ function crearServeis(mon) {
           }
           mon.bloqueig.retingut = true;
           mon.bloqueig.adquisicions++;
+          mon.sequencia.push('adquireix');
         },
         tryLock(timeoutMs) {
           try {
@@ -121,6 +126,7 @@ function crearServeis(mon) {
         releaseLock() {
           mon.bloqueig.retingut = false;
           mon.bloqueig.alliberaments++;
+          mon.sequencia.push('allibera');
         }
       };
     }
