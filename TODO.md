@@ -217,12 +217,13 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 
 ### 3.1 Validacions després d'una edició múltiple en un grup
 
-- [ ] **`refrescarValidacionsFilesGrup_`** crida `aplicarValidacioOrigenFila_` fila per fila. Cada crida fa 2 lectures, reconstrueix la regla comuna (que torna a buscar el full auxiliar) i fa una escriptura.
+- [x] **`refrescarValidacionsFilesGrup_`** crida `aplicarValidacioOrigenFila_` fila per fila. Cada crida fa 2 lectures, reconstrueix la regla comuna (que torna a buscar el full auxiliar) i fa una escriptura.
   - **Solució:** reutilitzar el patró de `refrescarTotesValidacionsOrigen_` limitat al rang editat:
     - llegir Tipus i Origen del rang amb una sola crida;
     - construir les dues regles comunes una sola vegada;
     - escriure-ho tot amb un sol `setDataValidations`.
   - Convé extreure una funció comuna que facin servir totes dues.
+  - Fet: `refrescarValidacionsFilesGrup_` és el camí comú de l'edició d'una cel·la (`aplicarValidacioOrigenFila_`), del rang enganxat i de la reconstrucció completa (`refrescarTotesValidacionsOrigen_`). Les regles comunes i la llista de Pendent es construeixen només si calen (`crearContextReglesOrigen_`). Enganxar 100 files en un grup: de 1.442 a 946 crides i de 406 a 307 escriptures.
 
 ### 3.2 Edicions múltiples al mestre
 

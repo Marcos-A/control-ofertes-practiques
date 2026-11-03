@@ -126,14 +126,15 @@ test('reserva d\'una oferta (Contacte + ID) en un sistema carregat', () => {
   esc.editar(full, 2, 'Origen', String(PRIMERA_PENDENT));
 
   assert.equal(esc.oferta(PRIMERA_PENDENT).estat, 'Contactada');
-  // v9: 252 crides (119 Sheet.getName).
-  comprovarPressupost(esc.comptador, { total: 136, getValues: 14, escriptures: 11, celes: 38328 });
+  // v9: 252 crides (119 Sheet.getName). La validació d'Origen fa una lectura
+  // en bloc (getValues) en lloc de dues de cel·la (getValue).
+  comprovarPressupost(esc.comptador, { total: 135, getValues: 15, escriptures: 11, celes: 38328 });
 });
 
 test('enganxar 100 files en un grup', () => {
-  // v9: 2.647 crides i 1.106 escriptures. Encara fa unes 14 crides i
-  // 4 escriptures per fila, sobretot la validació d'Origen (secció 3.1).
-  comprovarPressupost(enganxarAlGrup(100), { total: 1442, getValues: 14, escriptures: 406, celes: 45224 });
+  // v9: 2.647 crides i 1.106 escriptures. Ara unes 9 crides i 3 escriptures
+  // per fila: les dades de l'empresa i l'estat al mestre de cada oferta.
+  comprovarPressupost(enganxarAlGrup(100), { total: 946, getValues: 15, escriptures: 307, celes: 45224 });
 });
 
 test('enganxar 100 files al mestre: el cost creix linealment', () => {

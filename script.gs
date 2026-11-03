@@ -1330,86 +1330,80 @@ function obtenirReglaOrigenAmbIdActual_(type, currentId, pendingIds) {
 
 
 function aplicarValidacioOrigenFila_(sheet, row, cols, pendingIdsOpt) {
-  const cell = sheet.getRange(row, cols.origen);
-  const type = normalitzarText_(sheet.getRange(row, cols.tipus).getValue());
-  const currentId = normalitzarId_(cell.getValue());
-
-  if (!type) {
-    cell.clearDataValidations();
-    return;
-  }
-
-  if (currentId !== null) {
-    const pendingIds = pendingIdsOpt || obtenirPendentsIds_();
-    const rule = obtenirReglaOrigenAmbIdActual_(type, currentId, pendingIds);
-    if (rule) cell.setDataValidation(rule);
-    else cell.clearDataValidations();
-    return;
-  }
-
-  if (type === CFG.TIPUS.CONTACTE) {
-    cell.setDataValidation(obtenirReglaOrigenComunaContacte_());
-  } else {
-    cell.setDataValidation(obtenirReglaOrigenComunaAcord_());
-  }
+  refrescarValidacionsFilesGrup_(sheet, row, row, cols, crearContextReglesOrigen_(pendingIdsOpt));
 }
 
 
-function refrescarValidacionsFilesGrup_(sheet, firstRow, lastRow, cols) {
+/*
+ * IMPORTANT DE RENDIMENT:
+ * no fem un setDataValidation() per fila. Llegim Tipus i Origen del rang amb
+ * una sola crida, construïm la matriu de regles en memòria i fem UNA sola
+ * escriptura amb setDataValidations(). Les regles comunes i la llista
+ * d'ofertes Pendent es construeixen només si alguna fila les necessita.
+ */
+function refrescarValidacionsFilesGrup_(sheet, firstRow, lastRow, cols, contextOpt) {
   const start = Math.max(CFG.FIRST_DATA_ROW, firstRow);
   const end = Math.min(CFG.FIRST_DATA_ROW + CFG.MAX_ACORDS_PER_GRUP - 1, lastRow);
   if (end < start) return;
 
-  const pendingIds = obtenirPendentsIds_();
-  for (let row = start; row <= end; row++) {
-    aplicarValidacioOrigenFila_(sheet, row, cols, pendingIds);
-  }
+  const context = contextOpt || crearContextReglesOrigen_();
+  const numRows = end - start + 1;
+  const firstCol = Math.min(cols.tipus, cols.origen);
+  const width = Math.abs(cols.tipus - cols.origen) + 1;
+  const values = sheet.getRange(start, firstCol, numRows, width).getValues();
+
+  const validations = values.map(row => [reglaOrigen_(
+    normalitzarText_(row[cols.tipus - firstCol]),
+    normalitzarId_(row[cols.origen - firstCol]),
+    context
+  )]);
+
+  sheet.getRange(start, cols.origen, numRows, 1).setDataValidations(validations);
 }
 
 
 function refrescarTotesValidacionsOrigen_() {
-  const pendingIds = obtenirPendentsIds_();
-  const ruleAcord = obtenirReglaOrigenComunaAcord_();
-  const ruleContacte = obtenirReglaOrigenComunaContacte_();
+  const context = crearContextReglesOrigen_();
 
-  /*
-   * IMPORTANT DE RENDIMENT:
-   * no fem 1.100 setDataValidation() individuals. Llegim cada grup en bloc,
-   * construïm la matriu de regles en memòria i fem UNA sola escriptura per
-   * grup amb setDataValidations(). Això evita reproduir el coll d'ampolla
-   * de la primera arquitectura del sistema.
-   */
   CFG.GRUPS.forEach(group => {
     const sheet = obtenirFullGrup_(group);
     assegurarFilesGrup_(sheet);
     const cols = obtenirColumnesGrup_(sheet);
-
-    const types = sheet.getRange(2, cols.tipus, CFG.MAX_ACORDS_PER_GRUP, 1).getValues();
-    const origins = sheet.getRange(2, cols.origen, CFG.MAX_ACORDS_PER_GRUP, 1).getValues();
-
-    const validations = [];
-
-    for (let i = 0; i < CFG.MAX_ACORDS_PER_GRUP; i++) {
-      const type = normalitzarText_(types[i][0]);
-      const currentId = normalitzarId_(origins[i][0]);
-      let rule = null;
-
-      if (type === CFG.TIPUS.CONTACTE) {
-        rule = currentId !== null
-          ? obtenirReglaOrigenAmbIdActual_(type, currentId, pendingIds)
-          : ruleContacte;
-      } else if (type === CFG.TIPUS.ACORD) {
-        rule = currentId !== null
-          ? obtenirReglaOrigenAmbIdActual_(type, currentId, pendingIds)
-          : ruleAcord;
-      }
-
-      validations.push([rule]);
-    }
-
-    sheet.getRange(2, cols.origen, CFG.MAX_ACORDS_PER_GRUP, 1)
-      .setDataValidations(validations);
+    refrescarValidacionsFilesGrup_(
+      sheet, CFG.FIRST_DATA_ROW, CFG.FIRST_DATA_ROW + CFG.MAX_ACORDS_PER_GRUP - 1, cols, context
+    );
   });
+}
+
+
+// Regles i llista de Pendent compartides, construïdes a la primera necessitat.
+function crearContextReglesOrigen_(pendingIdsOpt) {
+  let pendingIds = pendingIdsOpt || null;
+  let ruleAcord = null;
+  let ruleContacte = null;
+
+  return {
+    pendingIds: () => pendingIds || (pendingIds = obtenirPendentsIds_()),
+    acord: () => ruleAcord || (ruleAcord = obtenirReglaOrigenComunaAcord_()),
+    contacte: () => ruleContacte || (ruleContacte = obtenirReglaOrigenComunaContacte_())
+  };
+}
+
+
+// Regla d'Origen d'una fila: individual si ja té un ID, comuna si no en té i
+// cap si no té Tipus.
+function reglaOrigen_(type, currentId, context) {
+  if (type === CFG.TIPUS.CONTACTE) {
+    return currentId !== null
+      ? obtenirReglaOrigenAmbIdActual_(type, currentId, context.pendingIds())
+      : context.contacte();
+  }
+  if (type === CFG.TIPUS.ACORD) {
+    return currentId !== null
+      ? obtenirReglaOrigenAmbIdActual_(type, currentId, context.pendingIds())
+      : context.acord();
+  }
+  return null;
 }
 
 
