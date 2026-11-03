@@ -311,9 +311,9 @@ Cada tasca indica la funció afectada, el problema i la solució proposada. Les 
 - [x] La capçalera de `script.gs` documenta la nova versió (v10) i el README explica com executar les proves.
 - [x] Comprovar en una còpia real que el text amb forma de nombre o de fórmula es copia literalment al grup i a `Ofertes` (`comText_`). Comprovat: el telèfon es copia tal com és al mestre. Els zeros inicials i el `+` només es perden si al mestre s'escriuen sense apòstrof, que és el comportament normal de Sheets en teclejar-los; la guia de coordinació explica com conservar-los.
 - [ ] Prova manual final en còpies dels dos fitxers reals, seguint la llista de proves del README: el banc de proves no cobreix els bloquejos reals, el temps dels triggers, els permisos ni la visualització dels desplegables.
-  - Comprovacions específiques de la v10, que els dobles no poden confirmar:
-    - `getFormulaR1C1()` retorna exactament la fórmula de Dies en contacte que s'hi ha escrit (si no, es continua reescrivint com a la v9, sense cap error).
-    - `setDataValidations` amb `null` en algunes cel·les les deixa sense desplegable, tant en una fila com en un rang.
-    - Una republicació sense canvis no modifica Ofertes ni l'auxiliar (es pot veure a l'historial de versions del fitxer compartit).
+  - Comprovacions específiques de la v10, que els dobles no poden confirmar (totes comprovades el 2026-11-03):
+    - `getFormulaR1C1()` retorna exactament la fórmula de Dies en contacte que s'hi ha escrit (si no, es continua reescrivint com a la v9, sense cap error). Comprovat.
+    - `setDataValidations` amb `null` en algunes cel·les les deixa sense desplegable, tant en una fila com en un rang. Comprovat.
+    - Una republicació sense canvis no modifica Ofertes ni l'auxiliar (es pot veure a l'historial de versions del fitxer compartit). Comprovat.
     - En un full de grup del fitxer compartit (no al mestre, que no té límit de files), escriure Tipus o Origen a la fila 102 es rebutja amb l'avís «Només es poden registrar contactes i acords a les files 2 a 101», i a la fila 101 funciona. Comprovat.
-    - Enganxar el telèfon i l'adreça de dues ofertes actives al mestre actualitza les files dels dos grups.
+    - Enganxar el telèfon i l'adreça de dues ofertes actives al mestre actualitza les files dels dos grups. Comprovat.
