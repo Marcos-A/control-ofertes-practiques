@@ -71,6 +71,14 @@ En reservar una oferta, el sistema emplena automàticament **Persona contacte**,
 
 No cal crear triggers a mà: `instal_larSistema()` elimina els antics i en crea tres de nous (edició del compartit, canvi estructural del compartit i edició del mestre).
 
+### Actualitzar una instal·lació existent
+
+1. A l'editor d'Apps Script, copia l'ID real de `MASTER_SPREADSHEET_ID`.
+2. Substitueix el contingut de `Code.gs` pel nou [`script.gs`](script.gs), torna a posar-hi l'ID real i desa.
+3. Executa **Pràctiques → Reinstal·lar / actualitzar sistema** amb el compte de la coordinació i, després, **Pràctiques → Auditar sistema**.
+
+La reinstal·lació no esborra dades: substitueix els triggers, refà les validacions i el full auxiliar, reconcilia i torna a publicar.
+
 > **Atenció:** no publiquis l'ID real del fitxer mestre en aquest repositori. Mantén el valor de mostra a `script.gs` i posa l'ID real només a la còpia de l'editor d'Apps Script.
 
 ### Configuració

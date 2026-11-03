@@ -33,6 +33,18 @@ No cal crear els triggers manualment. `instal_larSistema()` elimina els triggers
 - canvi estructural del fitxer compartit;  
 - edició del fitxer mestre.
 
+## Actualitzar una instal·lació existent
+
+Per passar a una versió nova de l'script (per exemple, de la v9 a la v10):
+
+1. Al fitxer compartit, ves a **Extensions → Apps Script** i copia l'ID real del fitxer mestre que hi ha a `MASTER_SPREADSHEET_ID`.  
+2. Substitueix tot el contingut de `Code.gs` pel nou `script.gs`.  
+3. Torna a posar l'ID real a `MASTER_SPREADSHEET_ID` i desa l'script.  
+4. Al fitxer compartit, executa **Pràctiques → Reinstal·lar / actualitzar sistema** amb el compte de la coordinadora.  
+5. Executa **Pràctiques → Auditar sistema**: no hauria de detectar cap inconsistència.
+
+La reinstal·lació no esborra cap dada: substitueix els triggers, refà les validacions i el full auxiliar, reconcilia i torna a publicar les ofertes.
+
 ## Comportament principal
 
 | Acció | Resultat |
@@ -43,6 +55,9 @@ No cal crear els triggers manualment. `instal_larSistema()` elimina els triggers
 | **Acord \+ propi** | No consumeix cap oferta. |
 | **Esborrar/alliberar** un Contacte o Acord vinculat a una oferta | L'oferta torna a *Pendent*. |
 | **Descartada** | Només es pot establir des del fitxer mestre de coordinació. |
+| **Dos grups trien la mateixa oferta** gairebé alhora | Se la queda el primer; el segon rep un avís i la seva cel·la *Origen* es buida. |
+| **Tipus o Origen a la fila 102 o més avall** d'un full de grup | Es rebutja: el sistema gestiona les files 2 a 101 (`MAX_ACORDS_PER_GRUP`). |
+| **Editar o enganxar dades de l'empresa** d'una oferta activa al mestre | Es copien a la fila del grup que la gestiona. |
 
 *Contactada* i *Assignada* no es poden establir manualment al mestre; els genera el sistema. Si s'enganxen aquests valors, el sistema comprova que existeixi un registre coherent al fitxer compartit (el tipus del grup ha de correspondre amb l'estat i *Gestionada per* ha de coincidir amb el grup). Si no es compleixen aquestes condicions, l'estat es reverteix automàticament a *Pendent*.
 
@@ -65,6 +80,8 @@ En seleccionar una oferta en un grup, el sistema emplena:
 - Adreça  
 - Localitat  
 - Nom empresa
+
+Els valors es copien tal com són al mestre. Un telèfon escrit al mestre només amb xifres perd els zeros inicials i el signe `+`; per conservar-los, cal escriure'l amb un apòstrof al davant o amb espais (vegeu la guia de coordinació).
 
 ## Control de contactes antics
 
@@ -98,5 +115,7 @@ Fes la primera instal·lació en còpies dels dos fitxers i prova, com a mínim:
 - canvi d'una oferta per una altra;  
 - esborrat complet d'una fila;  
 - eliminació física d'una fila;  
-- intent simultani d'assignar la mateixa oferta des de dos grups.
+- intent simultani d'assignar la mateixa oferta des de dos grups (se l'ha de quedar el primer);  
+- una oferta amb el telèfon escrit sense espais (`0034...` o `+34...`), que s'ha de copiar igual al grup;  
+- enganxar dades d'una oferta activa al mestre, que s'han de copiar a la fila del grup.
 

@@ -33,7 +33,7 @@ Si una oferta no apareix a *Ofertes*, no està disponible.
 
 ## 3\. Columna Tipus
 
-A cada registre has d'indicar un dels tres tipus:
+A cada registre has d'indicar un dels dos tipus:
 
 ### Contacte
 

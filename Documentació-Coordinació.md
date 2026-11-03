@@ -27,6 +27,8 @@ Un telèfon escrit només amb xifres es converteix en un número i perd els zero
 
 Les columnes *Gestionada per*, *Data contacte* i *Dies en contacte* són controlades pel sistema quan un tutor comença a gestionar una oferta.
 
+Si corregeixes les dades de l'empresa d'una oferta *Contactada* o *Assignada* (editant una cel·la o enganxant-ne diverses), el sistema les copia a la fila del grup que la gestiona.
+
 ## 3\. Estats de les ofertes
 
 ### Esperant informació
