@@ -58,6 +58,16 @@ El contacte ha acabat en un acord.
 
 L'oferta continua vinculada al grup. *Data contacte* es conserva com a registre d'auditoria (indica quan es va iniciar el contacte original), però *Dies en contacte* queda buit perquè ja no cal controlar la durada del contacte.
 
+### Posposada
+
+Ara no podem oferir alumnat a l'empresa, però l'empresa vol reprendre el procés de selecció més endavant.
+
+- Només la coordinadora la pot marcar com a *Posposada*.  
+- No es publica: els tutors no la veuen.  
+- Si un tutor l'està gestionant (*Contactada* o *Assignada*), primer l'ha d'alliberar.  
+- Pots anotar a *Comentaris* quan cal tornar a contactar l'empresa (per exemple, «tornar a trucar al febrer»). Els tutors no ho veuen mentre l'oferta estigui posposada.  
+- Per reprendre-la, torna-la a posar a *Pendent* i es tornarà a publicar.
+
 ### Descartada
 
 L'oferta no s'utilitzarà.
@@ -97,7 +107,7 @@ El tutor ha d'eliminar/alliberar aquell contacte al seu full de grup.
 
 El sistema torna automàticament l'oferta a *Pendent* perquè pugui ser gestionada de nou.
 
-Si l'oferta realment s'ha de rebutjar, la coordinadora és qui posteriorment l'ha de passar a *Descartada*.
+Si l'empresa vol continuar més endavant, la coordinadora l'ha de passar a *Posposada*. Si l'oferta realment s'ha de rebutjar, l'ha de passar a *Descartada*.
 
 ## 7\. Què no convé fer manualment?
 
@@ -136,6 +146,12 @@ Si el contacte no prospera:
 
 ```
 Contactada → Pendent
+```
+
+Si l'empresa vol continuar més endavant:
+
+```
+Coordinadora → Posposada → (més endavant) Pendent
 ```
 
 Si una oferta s'ha de rebutjar:

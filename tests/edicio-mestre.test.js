@@ -140,13 +140,46 @@ test('canviar l\'estat d\'una oferta vinculada a un grup es rebutja', async t =>
   }
 });
 
-test('passar una oferta a Pendent, Esperant o Descartada esborra les metadades i republica', async t => {
+test('passar a Posposada una oferta vinculada a un grup es rebutja', () => {
+  const esc = nouEscenari();
+  reservar(esc, 'GA1A', 2, 'Contacte', 1);
+  const abans = esc.oferta(1);
+  esc.reiniciarRegistres();
+
+  esc.editar(esc.fullMestre, filaDeId(1), 'Estat', 'Posposada');
+
+  assert.deepEqual(esc.oferta(1), abans);
+  assert.deepEqual(esc.avisos(), [
+    'L\'oferta 1 encara està vinculada a un grup. El tutor l\'ha d\'alliberar abans de canviar-ne l\'estat.'
+  ]);
+});
+
+test('passar una oferta a Pendent, Esperant, Posposada o Descartada esborra les metadades i republica', async t => {
   await t.test('Pendent → Descartada', () => {
     const esc = nouEscenari();
     esc.editar(esc.fullMestre, filaDeId(2), 'Estat', 'Descartada');
 
     assert.deepEqual(metadades(esc.oferta(2)), ['Descartada', '', '']);
     assert.deepEqual(idsPublicats(esc), [1, 3]);
+    assert.deepEqual(esc.avisos(), []);
+  });
+
+  await t.test('Pendent → Posposada', () => {
+    const esc = nouEscenari();
+    esc.editar(esc.fullMestre, filaDeId(2), 'Estat', 'Posposada');
+
+    assert.deepEqual(metadades(esc.oferta(2)), ['Posposada', '', '']);
+    assert.deepEqual(idsPublicats(esc), [1, 3]);
+    assert.deepEqual(esc.avisos(), []);
+  });
+
+  await t.test('Posposada → Pendent', () => {
+    const esc = nouEscenari();
+    esc.editar(esc.fullMestre, filaDeId(2), 'Estat', 'Posposada');
+    esc.editar(esc.fullMestre, filaDeId(2), 'Estat', 'Pendent');
+
+    assert.deepEqual(metadades(esc.oferta(2)), ['Pendent', '', '']);
+    assert.deepEqual(idsPublicats(esc), [1, 2, 3]);
     assert.deepEqual(esc.avisos(), []);
   });
 

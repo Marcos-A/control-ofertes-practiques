@@ -1,5 +1,8 @@
 /*******************************************************
  * CONTROL D'OFERTES I ACORDS DE PRÀCTIQUES
+ * v11: nou estat «Posposada» per a les empreses que volen reprendre la
+ *     selecció més endavant. Com Descartada, només el posa la coordinació,
+ *     no es publica i la reconciliació esborra les referències dels grups.
  * v10: correccions trobades amb el banc de proves automatitzades (tests/) i
  *     fase 2 de rendiment.
  *     Correccions: el text de les ofertes es copia literalment al grup i a
@@ -142,9 +145,18 @@ const CFG = Object.freeze({
     PENDENT: 'Pendent',
     CONTACTADA: 'Contactada',
     ASSIGNADA: 'Assignada',
+    POSPOSADA: 'Posposada',
     DESCARTADA: 'Descartada'
   })
 });
+
+// Estats que posa la coordinació i que treuen l'oferta de circulació:
+// no es publiquen i cap grup no hi pot quedar vinculat.
+const ESTATS_FORA_DE_CIRCULACIO = Object.freeze([
+  CFG.ESTATS.ESPERANT,
+  CFG.ESTATS.POSPOSADA,
+  CFG.ESTATS.DESCARTADA
+]);
 
 
 /********************************************************
@@ -1595,7 +1607,7 @@ function reconciliarDesDelCompartitSenseLock_() {
   uses.forEach((entries, id) => {
     const offer = masterMap.get(id);
 
-    if (!offer || [CFG.ESTATS.ESPERANT, CFG.ESTATS.DESCARTADA].includes(offer.estat)) {
+    if (!offer || ESTATS_FORA_DE_CIRCULACIO.includes(offer.estat)) {
       entries.forEach(entry => afegirNetejaFila_(entry.ctx, entry.i, true));
       return;
     }

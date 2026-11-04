@@ -139,17 +139,19 @@ test('una referència a una oferta Pendent la reserva per al grup', () => {
   assert.deepEqual(esc.ofertesPublicades(), []);
 });
 
-test('les referències a ofertes Esperant informació, Descartada o inexistents s\'esborren', () => {
+test('les referències a ofertes Esperant informació, Posposada, Descartada o inexistents s\'esborren', () => {
   const esperant = ofertaDeMostra(1, { estat: 'Esperant informació' });
   const descartada = ofertaDeMostra(2, { estat: 'Descartada' });
-  const esc = new Escenari({ ofertes: [esperant, descartada] });
+  const posposada = ofertaDeMostra(3, { estat: 'Posposada' });
+  const esc = new Escenari({ ofertes: [esperant, descartada, posposada] });
 
   esc.escriureFilaGrup('GA1A', 2, { tipus: 'Contacte', origen: 1, ...dadesEmpresaDe(esperant) });
   esc.escriureFilaGrup('GA1A', 3, { tipus: 'Acord', origen: 2, ...dadesEmpresaDe(descartada) });
   esc.escriureFilaGrup('GA1A', 4, { tipus: 'Acord', origen: 99, ...dadesEmpresaDe(ofertaDeMostra(99)) });
+  esc.escriureFilaGrup('GA1A', 5, { tipus: 'Contacte', origen: 3, ...dadesEmpresaDe(posposada) });
   reconciliar(esc);
 
-  for (const fila of [2, 3, 4]) {
+  for (const fila of [2, 3, 4, 5]) {
     const dades = esc.filaGrup('GA1A', fila);
     assert.equal(dades.origen, '', `fila ${fila}`);
     assert.deepEqual(dadesEmpresaFila(esc, 'GA1A', fila), BUIT, `fila ${fila}`);
@@ -158,6 +160,7 @@ test('les referències a ofertes Esperant informació, Descartada o inexistents 
   assert.equal(esc.filaGrup('GA1A', 2).tipus, 'Contacte');
   assert.equal(esc.oferta(1).estat, 'Esperant informació');
   assert.equal(esc.oferta(2).estat, 'Descartada');
+  assert.equal(esc.oferta(3).estat, 'Posposada');
   assert.equal(esc.oferta(99), null);
 });
 

@@ -43,6 +43,8 @@ Per passar a una versió nova de l'script (per exemple, de la v9 a la v10):
 4. Al fitxer compartit, executa **Pràctiques → Reinstal·lar / actualitzar sistema** amb el compte de la coordinadora.  
 5. Executa **Pràctiques → Auditar sistema**: no hauria de detectar cap inconsistència.
 
+El pas 4 també refà el desplegable *Estat* del mestre, de manera que hi apareixen els estats nous (per exemple, *Posposada* a la v11). Sense aquest pas, el desplegable no els mostra.
+
 La reinstal·lació no esborra cap dada: substitueix els triggers, refà les validacions i el full auxiliar, reconcilia i torna a publicar les ofertes.
 
 ## Comportament principal
@@ -54,7 +56,7 @@ La reinstal·lació no esborra cap dada: substitueix els triggers, refà les val
 | **Acord \+ ID Pendent** | L'oferta passa directament a *Assignada*. |
 | **Acord \+ propi** | No consumeix cap oferta. |
 | **Esborrar/alliberar** un Contacte o Acord vinculat a una oferta | L'oferta torna a *Pendent*. |
-| **Descartada** | Només es pot establir des del fitxer mestre de coordinació. |
+| **Posposada** o **Descartada** | Només es poden establir des del fitxer mestre de coordinació. L'oferta deixa de publicar-se i la reconciliació esborra les referències que en quedin als grups. Si un grup encara la gestiona, el canvi es rebutja fins que el tutor l'alliberi. |
 | **Dos grups trien la mateixa oferta** gairebé alhora | Se la queda el primer; el segon rep un avís i la seva cel·la *Origen* es buida. |
 | **Tipus o Origen a la fila 102 o més avall** d'un full de grup | Es rebutja: el sistema gestiona les files 2 a 101 (`MAX_ACORDS_PER_GRUP`). |
 | **Editar o enganxar dades de l'empresa** d'una oferta activa al mestre | Es copien a la fila del grup que la gestiona. |

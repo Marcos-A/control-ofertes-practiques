@@ -23,7 +23,7 @@ const MANUALS = Object.freeze({
 
 const AVIS_OCUPAT = 'El sistema està ocupat. Torna-ho a provar d\'aquí uns segons.';
 
-// Tres ofertes Pendent, una Esperant informació i una Descartada.
+// Tres ofertes Pendent, una Esperant informació, una Descartada i una Posposada.
 function nouEscenari(opcions = {}) {
   return new Escenari({
     ofertes: [
@@ -31,7 +31,8 @@ function nouEscenari(opcions = {}) {
       ofertaDeMostra(2),
       ofertaDeMostra(3),
       ofertaDeMostra(4, { estat: 'Esperant informació' }),
-      ofertaDeMostra(5, { estat: 'Descartada' })
+      ofertaDeMostra(5, { estat: 'Descartada' }),
+      ofertaDeMostra(6, { estat: 'Posposada' })
     ],
     ...opcions
   });
@@ -169,6 +170,7 @@ test('triar un ID no disponible es rebutja i el mestre no canvia', async t => {
   const casos = [
     ['Esperant informació', 4, 'L\'oferta 4 no està Pendent i no es pot seleccionar.'],
     ['Descartada', 5, 'L\'oferta 5 no està Pendent i no es pot seleccionar.'],
+    ['Posposada', 6, 'L\'oferta 6 no està Pendent i no es pot seleccionar.'],
     ['inexistent', 99, 'L\'oferta 99 no està Pendent i no es pot seleccionar.'],
     ['reservada per un altre grup', 1, 'L\'oferta 1 no està Pendent i no es pot seleccionar.']
   ];

@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const { ID_MOSTRA } = require('./harness/carregar-script');
 const { Escenari, GRUPS, ID_MESTRE, ID_COMPARTIT, ofertaDeMostra } = require('./harness/escenari');
 
-const ESTATS = ['Esperant informació', 'Pendent', 'Contactada', 'Assignada', 'Descartada'];
+const ESTATS = ['Esperant informació', 'Pendent', 'Contactada', 'Assignada', 'Posposada', 'Descartada'];
 
 test('instal_larSistema() amb l\'ID de mostra falla amb un missatge clar', () => {
   const esc = new Escenari({ instal_lar: false });

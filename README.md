@@ -29,6 +29,8 @@ Contactada            → un tutor l'ha reservada
 Assignada             → hi ha acord
 
 Si el contacte no prospera:   Contactada → Pendent
+Si s'ha d'aturar per ara:     la coordinació la passa a Posposada
+                              (i més endavant, de nou a Pendent)
 Si s'ha de rebutjar:          la coordinació la passa a Descartada
 ```
 

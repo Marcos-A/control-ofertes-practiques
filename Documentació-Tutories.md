@@ -86,6 +86,8 @@ El sistema tornarà automàticament l'oferta a la llista d'ofertes disponibles.
 
 No marquis l'oferta com a descartada. Si l'empresa indica que l'oferta ja no és vàlida o hi ha algun altre motiu per rebutjar-la, comunica-ho a la coordinadora.
 
+Si l'empresa vol continuar més endavant però ara no pot acollir alumnat, allibera igualment el contacte i comunica-ho a la coordinadora, que la marcarà com a posposada.
+
 ## 7\. Acord procedent d'una oferta
 
 Si l'acord ja està confirmat i no cal registrar una fase prèvia de contacte, pots seleccionar:
