@@ -148,6 +148,10 @@ El sistema està pensat per fer servir un joc de fitxers per curs. Abans de come
 3. Actualitza `MASTER_SPREADSHEET_ID` amb l'ID del nou fitxer mestre i torna a executar `instal_larSistema()`.
 4. Fes una prova amb una oferta fictícia.
 
+## Llicència
+
+Aquest projecte es distribueix sota la llicència `GPL-3.0-only`. Consulta el fitxer [LICENSE](LICENSE).
+
 ## Nota de desenvolupament
 
 Aquest projecte s'ha desenvolupat sota direcció i revisió humanes, amb el suport d'eines d'intel·ligència artificial en parts del codi, la depuració i la documentació. Les decisions sobre el funcionament del sistema i la responsabilitat sobre el resultat corresponen a la persona responsable del projecte.
